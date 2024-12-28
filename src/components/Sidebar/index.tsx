@@ -22,7 +22,7 @@ const menuGroups = [
         icon: (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            enable-background="new 0 0 24 24"
+            enableBackground="new 0 0 24 24"
             height="24px"
             viewBox="0 0 24 24"
             width="24px"
@@ -65,7 +65,7 @@ const menuGroups = [
               <path
                 d="M8,12c-3.309,0-6-2.691-6-6S4.691,0,8,0s6,2.691,6,6-2.691,6-6,6Zm14,2c0-2.206-1.794-4-4-4s-4,1.794-4,4h-2v7c0,1.654,1.346,3,3,3h6c1.654,0,3-1.346,3-3v-7h-2Zm-4-2c1.103,0,2,.897,2,2h-4c0-1.103,.897-2,2-2Zm-8,9v-7H5c-2.761,0-5,2.239-5,5v5H11.026c-.635-.838-1.026-1.87-1.026-3Z"
                 fill="#ffffff"
-                fill-opacity="1"
+                fillOpacity="1"
                 data-original-color="#000000ff"
                 stroke="none"
                 strokeOpacity="1"
@@ -97,7 +97,7 @@ const menuGroups = [
         icon: (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            enable-background="new 0 0 24 24"
+            enableBackground="new 0 0 24 24"
             height="24px"
             viewBox="0 0 24 24"
             width="24px"
@@ -121,7 +121,7 @@ const menuGroups = [
         icon: (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            enable-background="new 0 0 24 24"
+            enableBackground="new 0 0 24 24"
             height="24px"
             viewBox="0 0 24 24"
             width="24px"
@@ -145,7 +145,7 @@ const menuGroups = [
         icon: (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            enable-background="new 0 0 24 24"
+            enableBackground="new 0 0 24 24"
             height="24px"
             viewBox="0 0 24 24"
             width="24px"
@@ -164,7 +164,7 @@ const menuGroups = [
         icon: (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            enable-background="new 0 0 24 24"
+            enableBackground="new 0 0 24 24"
             height="24px"
             viewBox="0 0 24 24"
             width="24px"
@@ -195,7 +195,7 @@ const menuGroups = [
               <path
                 d="M20.905,0H3.1A3.125,3.125,0,0,0,0,3.146V8H2V3.146A1.123,1.123,0,0,1,3.1,2h17.81A1.123,1.123,0,0,1,22,3.146V20.854A1.123,1.123,0,0,1,20.905,22H3.1A1.123,1.123,0,0,1,2,20.854V16H0v4.854A3.125,3.125,0,0,0,3.1,24h17.81A3.125,3.125,0,0,0,24,20.854V3.146A3.125,3.125,0,0,0,20.905,0Z"
                 fill="#ffffff"
-                fill-opacity="1"
+                fillOpacity="1"
                 data-original-color="#000000ff"
                 stroke="none"
                 strokeOpacity="1"
@@ -203,7 +203,7 @@ const menuGroups = [
               <path
                 d="M3,13H17.086l-4.3,4.3L14.2,18.718l4.949-4.95a2.5,2.5,0,0,0,0-3.536L14.2,5.282,12.783,6.7l4.3,4.3H3Z"
                 fill="#ffffff"
-                fill-opacity="1"
+                fillOpacity="1"
                 data-original-color="#000000ff"
                 stroke="none"
                 strokeOpacity="1"

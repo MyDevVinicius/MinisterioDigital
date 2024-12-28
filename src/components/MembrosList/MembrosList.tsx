@@ -142,9 +142,20 @@ const MembrosList: React.FC = () => {
     setIsEditing(true);
     setEditingMembro(membro);
     setNome(membro.nome);
-    setDataNascimento(
-      new Date(membro.data_nascimento).toISOString().split("T")[0],
-    );
+
+    // Converter data no formato DD/MM/YYYY para YYYY-MM-DD
+    const [dia, mes, ano] = membro.data_nascimento.split("/");
+    const dataFormatada = `${ano}-${mes}-${dia}`;
+
+    // Validar a data formatada
+    const dataValida = !isNaN(new Date(dataFormatada).getTime());
+    if (dataValida) {
+      setDataNascimento(new Date(dataFormatada).toISOString().split("T")[0]);
+    } else {
+      setDataNascimento(""); // Ou defina um valor padrão
+      console.error(`Data de nascimento inválida: ${membro.data_nascimento}`);
+    }
+
     setEndereco(membro.endereco || "");
     setStatus(membro.status);
   };
