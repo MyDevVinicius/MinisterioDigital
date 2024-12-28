@@ -8,45 +8,64 @@ import ECommerce from "@/components/Dashboard/E-commerce";
 const DashboardPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true); // Carregando status
-  const [clienteAtivo, setClienteAtivo] = useState<boolean | null>(null); // Estado para status do cliente
+  const [clienteAtivo, setClienteAtivo] = useState<boolean | null>(null); // Status do cliente
+  const [acessoPermitido, setAcessoPermitido] = useState(true); // Flag para verificar se o usuário tem permissão
 
   useEffect(() => {
     const fetchClienteStatus = async () => {
       try {
-        const codigoVerificacao = localStorage.getItem("codigo_verificacao"); // Recupere o código de verificação do localStorage ou do cookie
-        if (!codigoVerificacao) {
+        const codigoVerificacao = localStorage.getItem("codigo_verificacao");
+        const email = localStorage.getItem("email");
+        const nomeBanco = localStorage.getItem("nome_banco");
+
+        // Verifica se as informações estão disponíveis no localStorage
+        if (!codigoVerificacao || !email || !nomeBanco) {
           console.log(
-            "Código de verificação não encontrado, redirecionando para login",
+            "Dados do cliente não encontrados, redirecionando para login.",
           );
           router.push("/login");
           return;
         }
 
-        console.log(
-          "Código de verificação encontrado no localStorage:",
-          codigoVerificacao,
-        );
-        // Chame sua API para verificar o status do cliente
+        // Chama a API para verificar o status do cliente
         const response = await fetch(
           `/api/protectStatus?codigoVerificacao=${codigoVerificacao}`,
         );
         const data = await response.json();
 
-        console.log("Resposta da API protectStatus:", data);
-
+        // Verifica se o status do cliente é ativo
         if (response.status !== 200 || data.status !== "ativo") {
-          console.log(
-            "Cliente inativo ou erro na resposta, redirecionando para login",
-          );
+          console.log("Cliente inativo, redirecionando para login.");
           router.push("/login");
           return;
         }
 
-        console.log("Cliente ativo, configurando estado");
         setClienteAtivo(true);
+
+        // Chama a API para verificar as permissões
+        const permissionsResponse = await fetch(
+          `/api/checkPermissions?codigoVerificacao=${codigoVerificacao}&email=${email}&nomeBanco=${nomeBanco}`,
+        );
+        const permissionsData = await permissionsResponse.json();
+
+        // Verifica se a resposta da API de permissões é válida
+        if (permissionsResponse.status !== 200) {
+          console.log("Erro ao buscar permissões", permissionsData);
+          setAcessoPermitido(false);
+          return;
+        }
+
+        // Verifica se o usuário tem permissão para acessar o Dashboard
+        const hasPermission = permissionsData.permissoes.some(
+          (perm: any) => perm.nome_pagina === "Dashboard" && perm.ativado,
+        );
+
+        if (!hasPermission) {
+          setAcessoPermitido(false);
+        }
       } catch (error) {
-        console.error("Erro ao buscar o status do cliente:", error);
-        router.push("/login"); // Em caso de erro, redireciona para login
+        console.error("Erro ao buscar status ou permissões", error);
+        router.push("/login");
       } finally {
         setLoading(false);
       }
@@ -55,22 +74,22 @@ const DashboardPage = () => {
     fetchClienteStatus();
   }, [router]);
 
+  // Exibe indicador de carregamento enquanto os dados estão sendo carregados
   if (loading) {
-    console.log("Carregando...");
-    return <div>Carregando...</div>; // Mostra a tela de carregamento enquanto verifica o status
+    return <div>Carregando...</div>;
   }
 
+  // Exibe mensagem enquanto o status do cliente está sendo verificado
   if (clienteAtivo === null) {
-    console.log("Status do cliente ainda não definido.");
     return <div>Verificando status do cliente...</div>;
   }
 
-  if (clienteAtivo === false) {
-    console.log("Cliente inativo, não renderizando nada");
-    return null; // Não renderiza nada se o cliente estiver inativo
+  // Exibe mensagem de erro se o cliente estiver inativo ou sem permissão
+  if (clienteAtivo === false || !acessoPermitido) {
+    return <div>Você não tem permissão para acessar esta página.</div>;
   }
 
-  console.log("Renderizando dashboard para cliente ativo");
+  // Exibe o conteúdo do Dashboard se tudo estiver correto
   return (
     <div className="space-y-5 bg-white p-4">
       <DefaultLayout>
