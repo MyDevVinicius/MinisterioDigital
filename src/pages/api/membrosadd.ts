@@ -11,7 +11,7 @@ export default async function handler(
   }
 
   // Extrair os dados do corpo da requisição
-  const { nome, data_nascimento, endereco, status, usuario_id } = req.body;
+  const { nome, data_nascimento, endereco, status } = req.body;
   const nomeBanco = req.query.banco as string;
 
   // Verificar se todos os dados necessários foram fornecidos
@@ -27,8 +27,8 @@ export default async function handler(
 
     // Inserir o novo membro na tabela 'membros'
     const [result] = await connection.execute(
-      "INSERT INTO membros (nome, data_nascimento, endereco, status, usuario_id) VALUES (?, ?, ?, ?, ?)",
-      [nome, data_nascimento, endereco || null, status, usuario_id || null],
+      "INSERT INTO membros (nome, data_nascimento, endereco, status) VALUES (?, ?, ?, ?)",
+      [nome, data_nascimento, endereco || null, status],
     );
 
     // Recuperar todos os membros para retornar na resposta

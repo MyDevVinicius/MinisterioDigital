@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getClientConnection } from "../../../lib/db";
-import { format } from "date-fns"; // Importando o date-fns para formatação de data
+import { format } from "date-fns";
 
 interface Membro {
   id: number;
@@ -8,7 +8,6 @@ interface Membro {
   data_nascimento: string;
   endereco: string | null;
   status: "ativo" | "inativo";
-  usuario_id: number | null;
 }
 
 export default async function handler(
@@ -20,6 +19,7 @@ export default async function handler(
   }
 
   const nomeBanco = req.query.banco as string;
+
   if (!nomeBanco) {
     return res.status(400).json({ message: "Nome do banco não fornecido" });
   }
@@ -29,14 +29,17 @@ export default async function handler(
   try {
     connection = await getClientConnection(nomeBanco);
 
+    // Consultar membros
     const [rows] = await connection.execute<Membro[]>(
-      "SELECT id, nome, data_nascimento, endereco, status, usuario_id FROM membros",
+      "SELECT id, nome, data_nascimento, endereco, status FROM membros",
     );
 
-    // Formatar a data de nascimento para um formato mais legível (exemplo: dd/MM/yyyy)
+    // Formatar a data de nascimento para o formato dd/MM/yyyy
     const membrosFormatados = rows.map((membro) => ({
       ...membro,
-      data_nascimento: format(new Date(membro.data_nascimento), "dd/MM/yyyy"), // Formatação da data
+      data_nascimento: membro.data_nascimento
+        ? format(new Date(membro.data_nascimento), "dd/MM/yyyy")
+        : null, // Caso a data_nascimento seja nula
     }));
 
     return res.status(200).json({ membros: membrosFormatados });
