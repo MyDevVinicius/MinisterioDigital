@@ -57,20 +57,24 @@ export default async function handler(
         .json({ message: "Dados faltando no corpo da requisição." });
     }
 
+    // Verifica se o tipo é Oferta ou Doação e ajusta o membroId se necessário
+    let queryParams = [observacao, tipo, formaPagamento, valor, dataTransacao];
+
+    if (tipo === "Dizimo" || tipo === "Campanha") {
+      // Se for Dízimo ou Campanha, adiciona o membroId
+      queryParams.push(membroId || null);
+    } else {
+      // Caso contrário, passa null (não precisa de membro_id)
+      queryParams.push(null);
+    }
+
     const query =
       "INSERT INTO entrada (observacao, tipo, forma_pagamento, valor, data, membro_id) VALUES (?, ?, ?, ?, ?, ?)";
-    const queryParams = [
-      observacao,
-      tipo,
-      formaPagamento,
-      valor,
-      dataTransacao,
-      membroId || null,
-    ];
 
     await clientConnection.query(query, queryParams);
     return res.status(201).json({ message: "Entrada registrada com sucesso." });
   } catch (error) {
+    console.error("Erro ao registrar entrada:", error);
     return res.status(500).json({ message: "Erro ao registrar entrada." });
   } finally {
     if (adminConnection) adminConnection.release();

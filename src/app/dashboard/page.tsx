@@ -14,58 +14,40 @@ const DashboardPage = () => {
   useEffect(() => {
     const fetchClienteStatus = async () => {
       try {
-        const codigoVerificacao = localStorage.getItem("codigo_verificacao");
-        const email = localStorage.getItem("email");
-        const nomeBanco = localStorage.getItem("nome_banco");
-
-        // Verifica se as informações estão disponíveis no localStorage
-        if (!codigoVerificacao || !email || !nomeBanco) {
+        const codigoVerificacao = localStorage.getItem("codigo_verificacao"); // Recupere o código de verificação do localStorage ou do cookie
+        if (!codigoVerificacao) {
           console.log(
-            "Dados do cliente não encontrados, redirecionando para login.",
+            "Código de verificação não encontrado, redirecionando para login",
           );
           router.push("/login");
           return;
         }
 
-        // Chama a API para verificar o status do cliente
+        console.log(
+          "Código de verificação encontrado no localStorage:",
+          codigoVerificacao,
+        );
+        // Chame sua API para verificar o status do cliente
         const response = await fetch(
           `/api/protectStatus?codigoVerificacao=${codigoVerificacao}`,
         );
         const data = await response.json();
 
-        // Verifica se o status do cliente é ativo
+        console.log("Resposta da API protectStatus:", data);
+
         if (response.status !== 200 || data.status !== "ativo") {
-          console.log("Cliente inativo, redirecionando para login.");
+          console.log(
+            "Cliente inativo ou erro na resposta, redirecionando para login",
+          );
           router.push("/login");
           return;
         }
 
+        console.log("Cliente ativo, configurando estado");
         setClienteAtivo(true);
-
-        // Chama a API para verificar as permissões
-        const permissionsResponse = await fetch(
-          `/api/checkPermissions?codigoVerificacao=${codigoVerificacao}&email=${email}&nomeBanco=${nomeBanco}`,
-        );
-        const permissionsData = await permissionsResponse.json();
-
-        // Verifica se a resposta da API de permissões é válida
-        if (permissionsResponse.status !== 200) {
-          console.log("Erro ao buscar permissões", permissionsData);
-          setAcessoPermitido(false);
-          return;
-        }
-
-        // Verifica se o usuário tem permissão para acessar o Dashboard
-        const hasPermission = permissionsData.permissoes.some(
-          (perm: any) => perm.nome_pagina === "Dashboard" && perm.ativado,
-        );
-
-        if (!hasPermission) {
-          setAcessoPermitido(false);
-        }
       } catch (error) {
-        console.error("Erro ao buscar status ou permissões", error);
-        router.push("/login");
+        console.error("Erro ao buscar o status do cliente:", error);
+        router.push("/login"); // Em caso de erro, redireciona para login
       } finally {
         setLoading(false);
       }
@@ -74,20 +56,22 @@ const DashboardPage = () => {
     fetchClienteStatus();
   }, [router]);
 
-  // Exibe indicador de carregamento enquanto os dados estão sendo carregados
   if (loading) {
-    return <div>Carregando...</div>;
+    console.log("Carregando...");
+    return <div>Carregando...</div>; // Mostra a tela de carregamento enquanto verifica o status
   }
 
-  // Exibe mensagem enquanto o status do cliente está sendo verificado
   if (clienteAtivo === null) {
+    console.log("Status do cliente ainda não definido.");
     return <div>Verificando status do cliente...</div>;
   }
 
-  // Exibe mensagem de erro se o cliente estiver inativo ou sem permissão
-  if (clienteAtivo === false || !acessoPermitido) {
-    return <div>Você não tem permissão para acessar esta página.</div>;
+  if (clienteAtivo === false) {
+    console.log("Cliente inativo, não renderizando nada");
+    return null; // Não renderiza nada se o cliente estiver inativo
   }
+
+  console.log("Renderizando página financeira para cliente ativo");
 
   // Exibe o conteúdo do Dashboard se tudo estiver correto
   return (

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaEdit, FaTrash } from "react-icons/fa";
 
 interface ContaAPagar {
   id: number;
@@ -18,6 +19,8 @@ const ContasAPagarList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [startDateFilter, setStartDateFilter] = useState<string>("");
   const [endDateFilter, setEndDateFilter] = useState<string>("");
+  const [editingConta, setEditingConta] = useState<ContaAPagar | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
 
   const fetchContas = async () => {
     try {
@@ -43,6 +46,54 @@ const ContasAPagarList: React.FC = () => {
     } catch (error) {
       console.error("Erro ao buscar contas:", error);
       toast.error("Erro ao buscar contas");
+    }
+  };
+
+  const deleteConta = async (id: number) => {
+    try {
+      const response = await fetch(`/api/contasapagardelete/${id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setContas((prev) => prev.filter((conta) => conta.id !== id));
+        toast.success("Conta excluída com sucesso!");
+      } else {
+        toast.error(data.message || "Erro ao excluir conta.");
+      }
+    } catch (error) {
+      console.error("Erro ao excluir conta:", error);
+      toast.error("Erro ao excluir conta");
+    }
+  };
+
+  const editConta = async (updatedConta: ContaAPagar) => {
+    try {
+      const response = await fetch(`/api/contasapagaredit/${updatedConta.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedConta),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setContas((prev) =>
+          prev.map((conta) =>
+            conta.id === updatedConta.id ? updatedConta : conta,
+          ),
+        );
+        toast.success("Conta atualizada com sucesso!");
+        setIsEditing(false);
+        setEditingConta(null);
+      } else {
+        toast.error(data.message || "Erro ao atualizar conta.");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar conta:", error);
+      toast.error("Erro ao atualizar conta");
     }
   };
 

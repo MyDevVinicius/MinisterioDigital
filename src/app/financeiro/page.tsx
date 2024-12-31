@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import EntradaSaidaForm from "@/components/EntradaSaidaForm/EntradaSaidaForm";
+import ContasaPagarFull from "@/components/ContasaPagarFull/ContasaPagarFull";
+import EntradasList from "@/components/EntradasList/EntradasList";
 
 const FinanceiroPage = () => {
   const router = useRouter();
@@ -75,6 +77,8 @@ const FinanceiroPage = () => {
     <div className="space-y-5 bg-white p-4">
       <DefaultLayout>
         <EntradaSaidaForm />
+        <ContasaPagarFull />
+        <EntradasList />
       </DefaultLayout>
     </div>
   );
