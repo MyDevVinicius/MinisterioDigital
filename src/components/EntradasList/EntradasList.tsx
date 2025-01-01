@@ -219,7 +219,7 @@ const EntradasList: React.FC = () => {
             <th className="px-4 py-2 text-left">Ações</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="bg-gray-50 font-bold text-black shadow-[0px_4px_6px_rgba(0,0,0,0.1),0px_-4px_6px_rgba(0,0,0,0.1)]">
           {entradasFiltradas.map((entrada) => (
             <tr key={entrada.id}>
               <td className="px-4 py-2">{entrada.observacao}</td>
@@ -245,13 +245,13 @@ const EntradasList: React.FC = () => {
                       /* Alterado para data_Lancamento */
                     }
                   }}
-                  className="text-blue-500 hover:text-blue-700"
+                  className="mr-[1rem] text-2xl text-media"
                 >
                   <FaEdit />
                 </button>
                 <button
                   onClick={() => deleteEntrada(entrada.id)}
-                  className="ml-2 text-red-500 hover:text-red-700"
+                  className="ml-2 text-red-500"
                 >
                   <FaTrash />
                 </button>

@@ -19,7 +19,10 @@ export default async function handler(
       .json({ error: `Método ${req.method} não permitido` });
   }
 
-  const { email, nome_banco } = req.query;
+  const { email } = req.query;
+
+  // Obtém o nome do banco a partir do cabeçalho ou da query (se enviado pelo cliente)
+  const nome_banco = req.headers["nome-banco"] || req.query["nome_banco"];
 
   // Verifica se todos os campos obrigatórios estão presentes
   if (!email || !nome_banco) {
@@ -56,6 +59,13 @@ export default async function handler(
     console.error("Erro ao buscar dados do usuário:", error);
     return res.status(500).json({ error: "Erro interno do servidor" });
   } finally {
-    if (clientConnection) clientConnection.release();
+    // Fecha a conexão com o banco, se aberta
+    if (clientConnection) {
+      try {
+        await clientConnection.release();
+      } catch (releaseError) {
+        console.error("Erro ao liberar a conexão:", releaseError);
+      }
+    }
   }
 }

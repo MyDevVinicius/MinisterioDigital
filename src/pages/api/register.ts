@@ -22,8 +22,8 @@ export default async function handler(
         .json({ error: "Chave de verificação é obrigatória" });
     }
 
-    let adminConnection;
-    let clientConnection;
+    let adminConnection: any = null;
+    let clientConnection: any = null;
 
     try {
       // Obtém a conexão do banco admin_db para verificar a chave de verificação
@@ -56,12 +56,28 @@ export default async function handler(
       return res
         .status(201)
         .json({ message: "Usuário registrado com sucesso" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao registrar usuário:", error);
       return res.status(500).json({ error: "Erro ao registrar usuário" });
     } finally {
-      if (adminConnection) adminConnection.release();
-      if (clientConnection) clientConnection.release();
+      if (adminConnection) {
+        try {
+          await adminConnection.release();
+        } catch (releaseError) {
+          console.error(
+            "Erro ao liberar a conexão administrativa:",
+            releaseError,
+          );
+        }
+      }
+
+      if (clientConnection) {
+        try {
+          await clientConnection.release();
+        } catch (releaseError) {
+          console.error("Erro ao liberar a conexão do cliente:", releaseError);
+        }
+      }
     }
   } else {
     res.setHeader("Allow", ["POST"]);

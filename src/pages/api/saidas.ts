@@ -22,8 +22,8 @@ export default async function handler(
     });
   }
 
-  let adminConnection;
-  let clientConnection;
+  let adminConnection = null;
+  let clientConnection = null;
 
   try {
     // Conecta ao banco admin_db para verificar a chave de verificação
@@ -62,7 +62,23 @@ export default async function handler(
       message: "Erro interno no servidor.",
     });
   } finally {
-    if (adminConnection) adminConnection.release();
-    if (clientConnection) clientConnection.release();
+    if (adminConnection) {
+      try {
+        await adminConnection.release();
+      } catch (releaseError) {
+        console.error(
+          "Erro ao liberar a conexão administrativa:",
+          releaseError,
+        );
+      }
+    }
+
+    if (clientConnection) {
+      try {
+        await clientConnection.release();
+      } catch (releaseError) {
+        console.error("Erro ao liberar a conexão do cliente:", releaseError);
+      }
+    }
   }
 }

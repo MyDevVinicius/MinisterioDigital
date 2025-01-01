@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaEdit, FaTrash } from "react-icons/fa";
 
 interface ContaAPagar {
   id: number;
@@ -39,7 +38,6 @@ const ContasAPagarList: React.FC = () => {
 
       if (response.ok) {
         setContas(data.data);
-        toast.success("Contas carregadas com sucesso!");
       } else {
         toast.error(data.message || "Erro ao carregar contas.");
       }

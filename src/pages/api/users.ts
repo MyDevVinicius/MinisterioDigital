@@ -41,6 +41,12 @@ export default async function handler(
     console.error("Erro ao acessar o banco de dados:", error);
     return res.status(500).json({ message: "Erro interno do servidor" });
   } finally {
-    if (connection) connection.release();
+    if (connection) {
+      try {
+        await connection.release();
+      } catch (releaseError) {
+        console.error("Erro ao liberar a conexão:", releaseError);
+      }
+    }
   }
 }

@@ -218,13 +218,13 @@ const UsuariosPage: React.FC = () => {
                 </select>
                 <button
                   onClick={editingUser ? handleEditUser : handleAddUser}
-                  className="mt-4 w-full rounded bg-media p-2 text-white"
+                  className="mr-4 mt-4 w-[10rem] rounded bg-media p-2 text-white"
                 >
                   {editingUser ? "Salvar Alterações" : "Cadastrar Usuário"}
                 </button>
                 <button
                   onClick={handleCloseForm}
-                  className="mt-2 w-full rounded bg-gray-500 p-2 text-white"
+                  className="mt-2 w-[10rem] rounded bg-red-500 p-2 text-white"
                 >
                   Fechar
                 </button>
@@ -265,7 +265,7 @@ const UsuariosPage: React.FC = () => {
                         setCargo(usuario.cargo);
                         setIsEditing(true);
                       }}
-                      className="rounded bg-yellow-500 px-4 py-2 text-white"
+                      className="rounded bg-media px-4 py-2 text-white"
                     >
                       Editar
                     </button>

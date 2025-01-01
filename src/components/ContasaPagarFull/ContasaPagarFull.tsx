@@ -257,13 +257,13 @@ const ContasAPagarList: React.FC = () => {
                     setEditingConta(conta);
                     setIsEditing(true);
                   }}
-                  className="text-blue-500 hover:text-blue-700"
+                  className="mr-[1rem] text-2xl font-bold text-media"
                 >
                   <FaEdit />
                 </button>
                 <button
                   onClick={() => deleteConta(conta.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-1xl font-bold text-red-500"
                 >
                   <FaTrash />
                 </button>

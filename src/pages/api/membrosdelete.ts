@@ -34,6 +34,9 @@ export default async function handler(
     console.error("Erro ao deletar membro:", error);
     return res.status(500).json({ message: "Erro ao deletar membro" });
   } finally {
-    if (connection) connection.release();
+    if (connection) {
+      // Libera a conexão, se houver
+      connection.release();
+    }
   }
 }

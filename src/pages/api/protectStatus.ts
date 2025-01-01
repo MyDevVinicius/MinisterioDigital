@@ -88,6 +88,15 @@ export default async function handler(
       .json({ message: "Erro interno ao buscar status do cliente." });
   } finally {
     // Garantir que as conexões sejam liberadas
-    if (adminConnection) await adminConnection.release();
+    if (adminConnection) {
+      try {
+        await adminConnection.release();
+      } catch (releaseError) {
+        console.error(
+          "Erro ao liberar a conexão administrativa:",
+          releaseError,
+        );
+      }
+    }
   }
 }

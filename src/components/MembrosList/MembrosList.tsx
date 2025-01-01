@@ -245,13 +245,13 @@ const MembrosList: React.FC = () => {
 
                 <button
                   onClick={editingMembro ? handleEditMembro : handleAddMembro}
-                  className="mt-4 w-full rounded bg-media p-2 text-white"
+                  className="mr-4 mt-4 w-[14rem] rounded bg-media p-2 text-white"
                 >
                   {editingMembro ? "Salvar Alterações" : "Cadastrar Membro"}
                 </button>
                 <button
                   onClick={handleCloseForm}
-                  className="mt-2 w-full rounded bg-gray-500 p-2 text-white"
+                  className="mt-2 w-[8rem] rounded bg-red-500 p-2 text-white"
                 >
                   Fechar
                 </button>
@@ -291,7 +291,7 @@ const MembrosList: React.FC = () => {
                   <td className="px-4 py-2 text-center font-bold text-black">
                     <button
                       onClick={() => handleOpenFormEdit(membro)}
-                      className="mr-2 rounded bg-blue-500 px-4 py-2 text-white"
+                      className="mr-2 rounded bg-media px-4 py-2 text-white"
                     >
                       Editar
                     </button>

@@ -19,8 +19,8 @@ export default async function handler(
     return res.status(400).json({ message: "Dados incompletos." });
   }
 
-  let adminConnection;
-  let clientConnection;
+  let adminConnection = null;
+  let clientConnection = null;
 
   try {
     adminConnection = await getClientConnection("admin_db");
@@ -58,7 +58,23 @@ export default async function handler(
     console.error("Erro ao buscar dados de saídas para o gráfico:", error);
     return res.status(500).json({ message: "Erro interno no servidor." });
   } finally {
-    if (adminConnection) adminConnection.release();
-    if (clientConnection) clientConnection.release();
+    if (adminConnection) {
+      try {
+        await adminConnection.release();
+      } catch (releaseError) {
+        console.error(
+          "Erro ao liberar a conexão administrativa:",
+          releaseError,
+        );
+      }
+    }
+
+    if (clientConnection) {
+      try {
+        await clientConnection.release();
+      } catch (releaseError) {
+        console.error("Erro ao liberar a conexão do cliente:", releaseError);
+      }
+    }
   }
 }

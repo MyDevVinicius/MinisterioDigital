@@ -40,7 +40,7 @@ export default async function handler(
     console.error("Erro ao adicionar membro:", error);
     return res.status(500).json({ message: "Erro ao adicionar membro" });
   } finally {
-    // Garantir que a conexão seja liberada
+    // Garantir que a conexão seja liberada após o uso
     if (connection) connection.release();
   }
 }
