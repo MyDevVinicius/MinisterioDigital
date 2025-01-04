@@ -59,13 +59,14 @@ const ContasAPagarList: React.FC = () => {
 
       if (!chave || !nomeBanco) {
         toast.error("Chave de verificação ou nome do banco não encontrados.");
+        console.error("Chave ou nomeBanco faltando:", { chave, nomeBanco });
         return;
       }
 
       const response = await fetch(`/api/contasapagardelete/${id}`, {
         method: "DELETE",
         headers: {
-          "x-nome-banco": nomeBanco,
+          "x-nome-banco": nomeBanco, // Corrigido
           "x-verificacao-chave": chave,
         },
       });
@@ -86,30 +87,31 @@ const ContasAPagarList: React.FC = () => {
 
   const editConta = async (updatedConta: ContaAPagar) => {
     try {
-      // Lógica para determinar o status
+      // Lógica de verificação do status
       const today = new Date();
       const dataVencimento = new Date(updatedConta.data_vencimento);
       const valorPago = parseFloat(updatedConta.valor_pago);
       const valorTotal = parseFloat(updatedConta.valor);
 
-      let status = "Pendente"; // Status default
+      let status = "Pendente"; // Default status
 
-      // Ajuste na lógica de verificação de status
+      // Verificando as condições para determinar o status
       if (valorPago === valorTotal) {
-        status = "Pago"; // Se o valor pago for igual ao total
+        status = "Pago"; // Se o valor pago for igual ao valor total, o status é 'Pago'
       } else if (valorPago === 0 && dataVencimento < today) {
-        status = "Vencida"; // Se o valor pago for 0 e passou a data
+        status = "Vencida"; // Se o valor pago for zero e a data de vencimento já passou, é 'Vencida'
       } else if (valorPago === 0) {
-        status = "Pendente"; // Se o valor pago for 0 e ainda dentro do prazo
+        status = "Pendente"; // Se o valor pago for zero, mas ainda está dentro do prazo, é 'Pendente'
       } else if (valorPago < valorTotal && dataVencimento < today) {
-        status = "Vencida"; // Se o valor pago for menor que o total e a data já passou
+        status = "Vencida"; // Se o valor pago for menor que o total e a data já passou, é 'Vencida'
       } else if (valorPago < valorTotal) {
-        status = "Pago Parcial"; // Se o valor pago for menor que o total, mas ainda dentro do prazo
+        status = "Pago Parcial"; // Se o valor pago for menor que o total, mas dentro do prazo, é 'Pago Parcial'
       }
 
-      // Atualiza o status
+      // Atualiza o status no objeto
       updatedConta.status = status;
 
+      // Obtenha os valores do localStorage
       const chave = localStorage.getItem("codigo_verificacao");
       const nomeBanco = localStorage.getItem("nome_banco");
 
@@ -118,19 +120,20 @@ const ContasAPagarList: React.FC = () => {
         return;
       }
 
+      // Adicione essas informações ao objeto atualizado da conta (se necessário)
       const updatedContaWithLocalStorage = {
         ...updatedConta,
-        nomeBanco,
+        nomeBanco, // Passa o nomeBanco do localStorage
       };
 
       const response = await fetch(`/api/contasapagaredit/${updatedConta.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-nome-banco": nomeBanco,
-          "x-verificacao-chave": chave,
+          "x-nome-banco": nomeBanco, // Passando o nome do banco no header
+          "x-verificacao-chave": chave, // Passando a chave de verificação no header
         },
-        body: JSON.stringify(updatedContaWithLocalStorage),
+        body: JSON.stringify(updatedContaWithLocalStorage), // Envia o objeto atualizado com os dados do localStorage
       });
 
       const data = await response.json();
@@ -235,45 +238,42 @@ const ContasAPagarList: React.FC = () => {
       <table className="mt-4 w-full table-auto border-collapse overflow-hidden rounded-lg text-gray-700">
         <thead className="rounded-t-lg bg-gray-100">
           <tr>
-            <th className="border p-2 text-center">Status</th>
-            <th className="border p-2 text-center">Data Vencimento</th>
+            <th className="border p-2 text-left">Observação</th>
             <th className="border p-2 text-center">Valor</th>
             <th className="border p-2 text-center">Valor Pago</th>
-            <th className="border p-2 text-center">Observação</th>
+            <th className="border p-2 text-center">Vencimento</th>
+            <th className="border p-2 text-center">Status</th>
             <th className="border p-2 text-center">Ações</th>
           </tr>
         </thead>
         <tbody>
           {contasFiltradas.map((conta) => (
-            <tr key={conta.id}>
-              <td
-                className={`border p-2 text-center ${getStatusClasses(conta.status)}`}
-              >
-                {conta.status}
-              </td>
-              <td className="border p-2 text-center">
-                {formatarData(conta.data_vencimento)}
-              </td>
-              <td className="border p-2 text-center">
-                {formatarValor(conta.valor)}
-              </td>
-              <td className="border p-2 text-center">
+            <tr
+              key={conta.id}
+              className={`border ${getStatusClasses(conta.status)}`}
+            >
+              <td className="p-2">{conta.observacao}</td>
+              <td className="p-2 text-center">{formatarValor(conta.valor)}</td>
+              <td className="p-2 text-center">
                 {formatarValor(conta.valor_pago)}
               </td>
-              <td className="border p-2 text-center">{conta.observacao}</td>
-              <td className="border p-2 text-center">
+              <td className="p-2 text-center">
+                {formatarData(conta.data_vencimento)}
+              </td>
+              <td className="p-2 text-center">{conta.status}</td>
+              <td className="flex justify-center gap-2 p-2 text-center">
                 <button
                   onClick={() => {
                     setEditingConta(conta);
                     setIsEditing(true);
                   }}
-                  className="mr-2 rounded p-2 text-blue-600 hover:bg-blue-200"
+                  className="mr-[1rem] text-2xl font-bold text-media"
                 >
                   <FaEdit />
                 </button>
                 <button
                   onClick={() => deleteConta(conta.id)}
-                  className="rounded p-2 text-red-600 hover:bg-red-200"
+                  className="text-1xl font-bold text-red-500"
                 >
                   <FaTrash />
                 </button>
@@ -282,6 +282,115 @@ const ContasAPagarList: React.FC = () => {
           ))}
         </tbody>
       </table>
+
+      {isEditing && editingConta && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-[40rem] rounded-md bg-white p-6 shadow-md">
+            <h2 className="mb-4 text-lg font-bold">Editar Conta</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Observação
+              </label>
+              <input
+                type="text"
+                value={editingConta.observacao}
+                onChange={(e) =>
+                  setEditingConta({
+                    ...editingConta,
+                    observacao: e.target.value,
+                  })
+                }
+                className="w-full rounded-md border p-2 text-black"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Valor
+              </label>
+              <input
+                type="text"
+                value={editingConta.valor}
+                onChange={(e) =>
+                  setEditingConta({ ...editingConta, valor: e.target.value })
+                }
+                className="w-full rounded-md border p-2 text-black"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Valor Pago
+              </label>
+              <input
+                type="text"
+                value={editingConta.valor_pago}
+                onChange={(e) =>
+                  setEditingConta({
+                    ...editingConta,
+                    valor_pago: e.target.value,
+                  })
+                }
+                className="w-full rounded-md border p-2 text-black"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Data de Vencimento
+              </label>
+              <input
+                type="date"
+                value={editingConta.data_vencimento.split("T")[0]} // Corretamente formatado para 'YYYY-MM-DD'
+                onChange={(e) =>
+                  setEditingConta({
+                    ...editingConta,
+                    data_vencimento: e.target.value,
+                  })
+                }
+                className="w-full rounded-md border p-2 text-black"
+              />
+            </div>
+
+            <div className="flex justify-start gap-4">
+              <button
+                onClick={() => {
+                  // Lógica para verificar o status da conta ao editar
+                  const updatedConta = { ...editingConta };
+                  const today = new Date();
+                  const dueDate = new Date(updatedConta.data_vencimento);
+                  const valorPago = parseFloat(updatedConta.valor_pago);
+                  const valorTotal = parseFloat(updatedConta.valor);
+
+                  // Lógica de atualização do status
+                  if (valorPago === valorTotal) {
+                    updatedConta.status = "Pago";
+                  } else if (valorPago === 0) {
+                    updatedConta.status =
+                      dueDate < today ? "Vencida" : "Pendente";
+                  } else if (valorPago < valorTotal && dueDate < today) {
+                    updatedConta.status = "Pago Parcial";
+                  }
+
+                  editConta(updatedConta);
+                }}
+                className="rounded-md bg-media px-4 py-2 text-white"
+              >
+                Atualizar
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditingConta(null);
+                }}
+                className="rounded-md bg-red-500 px-4 py-2 text-white"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
