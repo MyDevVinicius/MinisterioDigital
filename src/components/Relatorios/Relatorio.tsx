@@ -1,116 +1,167 @@
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useEffect, useState } from "react";
 
-interface FilterOptions {
-  type: string;
-  category: string;
-  startDate: string;
-  endDate: string;
+interface FilterComponentProps {
+  onFilterChange: (filters: {
+    tipo?: string;
+    subtipo?: string;
+    formaPagamento?: string;
+    dataInicio?: string;
+    dataFinal?: string;
+    usuarioId?: string;
+  }) => void;
 }
 
-const ReportFilter: React.FC = () => {
-  const [filter, setFilter] = useState<FilterOptions>({
-    type: "entrada",
-    category: "",
-    startDate: "",
-    endDate: "",
-  });
-  const [reports, setReports] = useState<any[]>([]);
-
-  const handleFilterChange = (
-    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>,
-  ) => {
-    const { name, value } = e.target;
-    setFilter({ ...filter, [name]: value });
-  };
-
-  const fetchReports = async () => {
-    try {
-      const response = await axios.post("/api/relatorio", filter);
-      setReports(response.data);
-    } catch (error) {
-      console.error("Erro ao buscar relatórios:", error);
-    }
-  };
-
-  const downloadPDF = () => {
-    // Função de download de PDF
-    console.log("Baixar PDF");
-  };
+const FilterComponent: React.FC<FilterComponentProps> = ({
+  onFilterChange,
+}) => {
+  const [tipo, setTipo] = useState<string | undefined>();
+  const [subtipo, setSubtipo] = useState<string | undefined>();
+  const [formaPagamento, setFormaPagamento] = useState<string>("todos");
+  const [dataInicio, setDataInicio] = useState<string | undefined>();
+  const [dataFinal, setDataFinal] = useState<string | undefined>();
+  const [usuarioId, setUsuarioId] = useState<string | undefined>();
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
 
   return (
-    <div className="report-filter">
-      <div className="filter-container">
-        <h2>Filtros para Relatórios</h2>
+    <div className="rounded-lg bg-gray-100 p-6 shadow-md">
+      <h2 className="mb-4 text-lg font-semibold text-gray-700">Filtros</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {/* Tipo */}
+        <div>
+          <label
+            htmlFor="tipo"
+            className="mb-1 block text-sm font-medium text-gray-600"
+          >
+            Tipo
+          </label>
+          <select
+            id="tipo"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value || undefined)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="">Todos</option>
+            <option value="entrada">Entrada</option>
+            <option value="saida">Saída</option>
+          </select>
+        </div>
 
-        <label>Tipo de Relatório</label>
-        <select name="type" value={filter.type} onChange={handleFilterChange}>
-          <option value="entrada">Relatório de Entrada</option>
-          <option value="saida">Relatório de Saída</option>
-        </select>
-
-        {filter.type === "entrada" && (
-          <>
-            <label>Categoria</label>
-            <select
-              name="category"
-              value={filter.category}
-              onChange={handleFilterChange}
+        {/* Subtipo */}
+        {tipo && (
+          <div>
+            <label
+              htmlFor="subtipo"
+              className="mb-1 flex text-sm font-medium text-gray-600"
             >
-              <option value="">Selecione</option>
-              <option value="dizimos">Dízimos</option>
-              <option value="ofertas">Ofertas</option>
-              <option value="campanha">Campanha</option>
+              Subtipo
+            </label>
+            <select
+              id="subtipo"
+              value={subtipo}
+              onChange={(e) => setSubtipo(e.target.value || undefined)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="">Todos</option>
+              {tipo === "entrada" && (
+                <>
+                  <option value="Dizimo">Dízimo</option>
+                  <option value="Oferta">Oferta</option>
+                  <option value="Doacao">Doação</option>
+                  <option value="Campanha">Campanha</option>
+                </>
+              )}
+              {tipo === "saida" && (
+                <>
+                  <option value="Pagamento">Pagamento</option>
+                  <option value="Salario">Salário</option>
+                  <option value="Ajuda de Custo">Ajuda de Custo</option>
+                </>
+              )}
             </select>
-          </>
+          </div>
         )}
 
-        {filter.type === "saida" && (
-          <>
-            <label>Categoria</label>
-            <select
-              name="category"
-              value={filter.category}
-              onChange={handleFilterChange}
-            >
-              <option value="">Selecione</option>
-              <option value="pagamentos">Pagamentos</option>
-              <option value="salario">Salário</option>
-              <option value="ajuda_de_custo">Ajuda de Custo</option>
-            </select>
-          </>
-        )}
+        {/* Forma de Pagamento */}
+        <div>
+          <label
+            htmlFor="formaPagamento"
+            className="mb-1 block text-sm font-medium text-gray-600"
+          >
+            Forma de Pagamento
+          </label>
+          <select
+            id="formaPagamento"
+            value={formaPagamento}
+            onChange={(e) => setFormaPagamento(e.target.value || undefined)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="todos">Todos</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="pix">Pix</option>
+            <option value="debito">Débito</option>
+            <option value="credito">Crédito</option>
+          </select>
+        </div>
 
-        <label>Data de Início</label>
-        <input
-          type="date"
-          name="startDate"
-          value={filter.startDate}
-          onChange={handleFilterChange}
-        />
+        {/* Data Início */}
+        <div>
+          <label
+            htmlFor="dataInicio"
+            className="mb-1 block text-sm font-medium text-gray-600"
+          >
+            Data Início
+          </label>
+          <input
+            id="dataInicio"
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value || undefined)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
 
-        <label>Data de Fim</label>
-        <input
-          type="date"
-          name="endDate"
-          value={filter.endDate}
-          onChange={handleFilterChange}
-        />
+        {/* Data Final */}
+        <div>
+          <label
+            htmlFor="dataFinal"
+            className="mb-1 block text-sm font-medium text-gray-600"
+          >
+            Data Final
+          </label>
+          <input
+            id="dataFinal"
+            type="date"
+            value={dataFinal}
+            onChange={(e) => setDataFinal(e.target.value || undefined)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
 
-        <button onClick={fetchReports}>Gerar Lista</button>
-        <button onClick={downloadPDF}>Baixar PDF</button>
-      </div>
-
-      <div className="report-list">
-        <h3>Resultados</h3>
-        <ul>
-          {reports.map((report, index) => (
-            <li key={index}>{JSON.stringify(report)}</li>
-          ))}
-        </ul>
+        {/* Usuário */}
+        <div>
+          <label
+            htmlFor="usuarioId"
+            className="mb-1 block text-sm font-medium text-gray-600"
+          >
+            Usuário
+          </label>
+          <select
+            id="usuarioId"
+            value={usuarioId}
+            onChange={(e) => setUsuarioId(e.target.value || undefined)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="">Todos</option>
+            {usuarios.map((usuario) => (
+              <option key={usuario.id} value={usuario.id}>
+                {usuario.nome}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );
 };
 
-export default ReportFilter;
+export default FilterComponent;

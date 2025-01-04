@@ -208,15 +208,15 @@ const EntradasList: React.FC = () => {
         </div>
       </div>
 
-      <table className="w-full table-auto">
-        <thead>
+      <table className="mt-4 w-full table-auto border-collapse overflow-hidden rounded-lg text-gray-700">
+        <thead className="rounded-t-lg bg-gray-100">
           <tr>
-            <th className="px-4 py-2 text-left">Observação</th>
-            <th className="px-4 py-2 text-left">Tipo</th>
-            <th className="px-4 py-2 text-left">Forma de Pagamento</th>
-            <th className="px-4 py-2 text-left">Valor</th>
-            <th className="px-4 py-2 text-left">Lançamento</th>
-            <th className="px-4 py-2 text-left">Ações</th>
+            <th className="border px-4 py-2 text-left">Observação</th>
+            <th className="border px-4 py-2 text-center">Tipo</th>
+            <th className="border px-4 py-2 text-center">Forma de Pagamento</th>
+            <th className="border px-4 py-2 text-center">Valor</th>
+            <th className="border px-4 py-2 text-center">Lançamento</th>
+            <th className="border px-4 py-2 text-center">Ações</th>
           </tr>
         </thead>
         <tbody className="bg-gray-50 font-bold text-black shadow-[0px_4px_6px_rgba(0,0,0,0.1),0px_-4px_6px_rgba(0,0,0,0.1)]">

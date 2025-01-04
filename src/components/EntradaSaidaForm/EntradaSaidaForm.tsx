@@ -17,10 +17,11 @@ interface EntradaSaida {
     | "Ajuda de Custo";
   formaPagamento: "Dinheiro" | "PIX" | "Debito" | "Credito";
   valor: number;
+  valorPago?: number; // Valor pago, presente apenas nas transações de saída
   dataTransacao: string;
   membroId?: number;
-  valorPago?: number;
-  dataVencimento?: string;
+  usuarioEmail: string;
+  dataVencimento?: string; // Data de vencimento para saídas
 }
 
 interface Membro {
@@ -30,30 +31,30 @@ interface Membro {
 
 const Container = styled.div`
   width: 100%;
-  max-width: 100%; /* A largura máxima é 100% */
+  max-width: 100%;
   margin: 0 auto;
   padding: 20px;
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  box-sizing: border-box; /* Garante que o preenchimento não afete a largura */
+  box-sizing: border-box;
 `;
 
 const Form = styled.form`
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  width: 100%; /* Garante que o formulário ocupe toda a largura */
-  box-sizing: border-box; /* Impede que o preenchimento afete o layout */
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const FormGroup = styled.div`
-  flex: 1 1 calc(50% - 20px); /* Cada item ocupa 50% da largura, com 20px de gap */
+  flex: 1 1 calc(50% - 20px);
   display: flex;
   flex-direction: column;
 
   @media (max-width: 768px) {
-    flex: 1 1 100%; /* Em telas menores, ocupa 100% da largura */
+    flex: 1 1 100%;
   }
 `;
 
@@ -115,7 +116,10 @@ const EntradaSaidaForm: React.FC = () => {
     tipo: "Dizimo",
     formaPagamento: "Dinheiro",
     valor: 0,
+    valorPago: 0, // Valor pago inicialmente é 0
     dataTransacao: new Date().toISOString().slice(0, 19),
+    usuarioEmail: localStorage.getItem("email_usuario") || "",
+    dataVencimento: "", // Data de vencimento vazia por padrão
   });
 
   const [membros, setMembros] = useState<Membro[]>([]);
@@ -170,9 +174,12 @@ const EntradaSaidaForm: React.FC = () => {
 
     const nomeBanco = localStorage.getItem("nome_banco");
     const chaveVerificacao = localStorage.getItem("codigo_verificacao");
+    const usuarioEmail = localStorage.getItem("email");
 
-    if (!nomeBanco || !chaveVerificacao) {
-      toast.error("Nome do banco ou chave de verificação não encontrados!");
+    if (!nomeBanco || !chaveVerificacao || !usuarioEmail) {
+      toast.error(
+        "Nome do banco, chave de verificação ou e-mail do usuário não encontrados!",
+      );
       return;
     }
 
@@ -188,21 +195,29 @@ const EntradaSaidaForm: React.FC = () => {
           "Content-Type": "application/json",
           "x-verificacao-chave": chaveVerificacao,
           "x-nome-banco": nomeBanco,
+          "x-usuario-email": usuarioEmail,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         toast.success(data.message);
+
+        // Resetar o formulário após sucesso
         setFormData({
           observacao: "",
           tipoTransacao: "Entrada",
           tipo: "Dizimo",
           formaPagamento: "Dinheiro",
           valor: 0,
+          valorPago: 0,
           dataTransacao: new Date().toISOString().slice(0, 19),
+          usuarioEmail,
+          dataVencimento: "",
         });
       } else {
         toast.error(data.message || "Erro ao registrar transação.");
@@ -284,40 +299,32 @@ const EntradaSaidaForm: React.FC = () => {
             name="valor"
             value={formData.valor}
             onChange={handleChange}
-          />
-        </FormGroup>
-        <FormGroup>
-          <Label>Data da Transação</Label>
-          <Input
-            type="datetime-local"
-            name="dataTransacao"
-            value={formData.dataTransacao}
-            onChange={handleChange}
+            required
           />
         </FormGroup>
         {formData.tipoTransacao === "Saida" && (
-          <>
-            <FormGroup>
-              <Label>Valor Pago</Label>
-              <Input
-                type="number"
-                name="valorPago"
-                value={formData.valorPago || 0}
-                onChange={handleChange}
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label>Data de Vencimento</Label>
-              <Input
-                type="date"
-                name="dataVencimento"
-                value={formData.dataVencimento || ""}
-                onChange={handleChange}
-              />
-            </FormGroup>
-          </>
+          <FormGroup>
+            <Label>Valor Pago</Label>
+            <Input
+              type="number"
+              name="valorPago"
+              value={formData.valorPago || ""}
+              onChange={handleChange}
+            />
+          </FormGroup>
         )}
-        <FormGroup style={{ flexBasis: "100%" }}>
+        {formData.tipoTransacao === "Saida" && (
+          <FormGroup>
+            <Label>Data de Vencimento</Label>
+            <Input
+              type="date"
+              name="dataVencimento"
+              value={formData.dataVencimento}
+              onChange={handleChange}
+            />
+          </FormGroup>
+        )}
+        <FormGroup>
           <Button type="submit">Registrar Transação</Button>
         </FormGroup>
       </Form>

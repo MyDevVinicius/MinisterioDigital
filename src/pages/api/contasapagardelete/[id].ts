@@ -20,27 +20,54 @@ export default async function handler(
   let clientConnection;
   try {
     // Acesse o nome do banco corretamente
-    const nomeBanco = req.headers["x-nome-banco"] as string; // Alterado para 'x-nome-banco'
+    const nomeBanco = req.headers["x-nome-banco"] as string;
     if (!nomeBanco) {
       return res.status(400).json({ message: "Nome do banco não fornecido" });
     }
 
     clientConnection = await getClientConnection(nomeBanco);
 
-    const [result] = await clientConnection.execute(
+    // Iniciar uma transação para garantir a integridade dos dados
+    await clientConnection.beginTransaction();
+
+    // Excluir da tabela 'contas_a_pagar'
+    const [contaResult] = await clientConnection.execute(
       `DELETE FROM contas_a_pagar WHERE id = ?`,
       [idNumber],
     );
 
-    if ((result as any).affectedRows === 0) {
+    if ((contaResult as any).affectedRows === 0) {
+      // Se a conta não foi encontrada, desfazemos a transação e retornamos o erro
+      await clientConnection.rollback();
       return res.status(404).json({ message: "Conta não encontrada" });
     }
 
-    res.status(200).json({ message: "Conta excluída com sucesso" });
+    // Excluir da tabela 'saida', considerando que 'conta_id' é a referência à tabela 'contas_a_pagar'
+    const [saidaResult] = await clientConnection.execute(
+      `DELETE FROM saida WHERE conta_id = ?`,
+      [idNumber],
+    );
+
+    if ((saidaResult as any).affectedRows === 0) {
+      console.warn(
+        `Nenhuma saída associada com a conta ID ${idNumber} foi encontrada`,
+      );
+    }
+
+    // Com ambas as exclusões realizadas, confirmamos a transação
+    await clientConnection.commit();
+
+    res.status(200).json({ message: "Conta e saída excluídas com sucesso" });
   } catch (error: unknown) {
-    console.error("Erro ao excluir conta:", error);
+    console.error("Erro ao excluir conta e saída:", error);
+
+    // Se ocorreu qualquer erro, desfazemos a transação
+    if (clientConnection) {
+      await clientConnection.rollback();
+    }
+
     res.status(500).json({
-      message: "Erro ao excluir conta",
+      message: "Erro ao excluir conta e saída",
       error: (error as Error).message || "Erro desconhecido",
     });
   } finally {

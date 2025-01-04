@@ -1,136 +1,128 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getClientConnection } from "../../../lib/db"; // Ajuste o caminho do db.ts
+import { getClientConnection } from "../../../lib/db"; // Função para conectar ao banco de dados do cliente
 import { RowDataPacket } from "mysql2";
+
+// Tipagem para o usuário
+interface Usuario extends RowDataPacket {
+  email: string;
+  nome: string;
+  cargo: string;
+  id: number;
+}
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  // Verificar se o método é POST
   if (req.method !== "POST") {
     return res
       .status(405)
-      .json({ message: `Método ${req.method} não permitido.` });
+      .json({ error: `Método ${req.method} não permitido` });
   }
 
-  const chave = req.headers["x-verificacao-chave"];
-  const nomeBanco = req.headers["x-nome-banco"];
+  // Obter e-mail do cabeçalho
+  const email = req.headers["x-usuario-email"] as string;
+  if (!email) {
+    return res.status(400).json({ error: "E-mail não fornecido no cabeçalho" });
+  }
 
+  // Obter dados do corpo da requisição
+  const {
+    observacao,
+    tipo,
+    formaPagamento,
+    valor,
+    valorPago,
+    dataVencimento,
+    dataTransacao,
+  } = req.body;
+  const nome_banco = req.headers["x-nome-banco"] as string;
+
+  // Verificar campos obrigatórios
   if (
-    !chave ||
-    typeof chave !== "string" ||
-    !nomeBanco ||
-    typeof nomeBanco !== "string"
+    !nome_banco ||
+    !observacao ||
+    !tipo ||
+    !formaPagamento ||
+    !valor ||
+    !dataVencimento
   ) {
-    return res.status(400).json({
-      message: "Chave de verificação ou nome do banco não fornecidos.",
-    });
+    return res.status(400).json({ error: "Campos obrigatórios ausentes." });
   }
 
-  let adminConnection;
   let clientConnection;
+  let usuarioId;
 
   try {
-    // Verificar chave de verificação e nome do banco
-    adminConnection = await getClientConnection("admin_db");
-    const [result] = await adminConnection.query<RowDataPacket[]>(
-      "SELECT nome_banco FROM clientes WHERE codigo_verificacao = ?",
-      [chave],
-    );
+    // Criar a conexão com o banco do cliente
+    clientConnection = await getClientConnection(nome_banco);
 
-    if (result.length === 0) {
-      return res.status(404).json({ message: "Chave inválida." });
+    // Buscar o ID do usuário com o e-mail fornecido
+    const userSql = "SELECT id FROM usuarios WHERE email = ?";
+    const [userRows] = await clientConnection.execute<Usuario[]>(userSql, [
+      email,
+    ]);
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
-    const databaseName = result[0].nome_banco as string;
+    usuarioId = userRows[0].id;
 
-    if (databaseName !== nomeBanco) {
-      return res.status(400).json({ message: "Nome do banco inválido." });
-    }
-
-    // Conexão com o banco do cliente
-    clientConnection = await getClientConnection(databaseName);
-
-    const {
-      observacao,
-      tipo,
-      formaPagamento,
-      valor,
-      dataTransacao,
-      valorPago,
-      dataVencimento,
-    } = req.body;
-
-    if (
-      !observacao ||
-      !tipo ||
-      !formaPagamento ||
-      !valor ||
-      !dataTransacao ||
-      !valorPago ||
-      !dataVencimento
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Dados faltando no corpo da requisição." });
-    }
-
-    // Determinar o status
-    let status = "Pendente";
-    if (
-      valorPago > 0 &&
-      valorPago < valor &&
-      new Date(dataVencimento) < new Date()
-    ) {
-      status = "Vencida";
-    } else if (valorPago === valor) {
-      status = "Pago";
-    } else if (valorPago > 0 && valorPago < valor) {
-      status = "Pago Parcial";
-    }
-
-    // Inserir na tabela contas_a_pagar e obter o ID gerado
-    const queryContasAPagar =
-      "INSERT INTO contas_a_pagar (observacao, valor, data_vencimento, status, valor_pago) VALUES (?, ?, ?, ?, ?)";
+    // Preparar a inserção na tabela 'contas_a_pagar' com a data de vencimento correta
     const queryParamsContasAPagar = [
       observacao,
       valor,
-      dataVencimento,
-      status,
-      valorPago,
+      dataVencimento, // Usar a data de vencimento fornecida
+      "Pendente", // Status inicial
+      valorPago || 0, // Se não houver valor pago, será 0
     ];
 
-    const [insertResult] = await clientConnection.query(
+    const queryContasAPagar = `
+      INSERT INTO contas_a_pagar (observacao, valor, data_vencimento, status, valor_pago) 
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+    // Inserir os dados na tabela 'contas_a_pagar'
+    const [insertContasResult] = await clientConnection.query(
       queryContasAPagar,
       queryParamsContasAPagar,
     );
-    const contaId = (insertResult as any).insertId; // Obtém o ID gerado
 
-    // Inserir na tabela saida com o conta_id
-    const querySaida =
-      "INSERT INTO saida (observacao, tipo, forma_pagamento, valor, data, conta_id) VALUES (?, ?, ?, ?, ?, ?)";
+    const contaId = (insertContasResult as any).insertId;
+
+    // Preparar a inserção na tabela 'saida'
     const queryParamsSaida = [
       observacao,
       tipo,
       formaPagamento,
-      valorPago, // Usar valorPago aqui
+      valor,
       dataTransacao,
-      contaId, // Relaciona com a conta inserida
+      usuarioId,
+      contaId, // Relacionando a saída com a conta a pagar
     ];
 
+    const querySaida = `
+      INSERT INTO saida (observacao, tipo, forma_pagamento, valor, data, usuario_id, conta_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    // Inserir dados na tabela 'saida'
     await clientConnection.query(querySaida, queryParamsSaida);
 
-    return res.status(201).json({
-      message: "Saída e conta registradas com sucesso.",
-      contaId,
-    });
-  } catch (error: unknown) {
+    // Retornar sucesso
+    return res
+      .status(201)
+      .json({ message: "Saída e conta registradas com sucesso." });
+  } catch (error) {
     console.error("Erro ao registrar saída:", error);
-    return res.status(500).json({
-      message: "Erro ao registrar saída.",
-      error: (error as Error).message,
-    });
+    if (clientConnection) {
+      clientConnection.end();
+    }
+    return res.status(500).json({ error: "Erro interno do servidor." });
   } finally {
-    if (adminConnection) adminConnection.release();
-    if (clientConnection) clientConnection.release();
+    // Fechar a conexão com o banco de dados se não foi fechada no catch
+    if (clientConnection) clientConnection.end();
   }
 }
