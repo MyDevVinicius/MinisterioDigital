@@ -51,31 +51,6 @@ const menuGroups = [
         label: "Financeiro",
         route: "/financeiro",
       },
-      {
-        icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            id="Layer_1"
-            data-name="Layer 1"
-            viewBox="0 0 24 24"
-            width="22"
-            height="22"
-          >
-            <g width="100%" height="100%" transform="matrix(1,0,0,1,0,0)">
-              <path
-                d="M8,12c-3.309,0-6-2.691-6-6S4.691,0,8,0s6,2.691,6,6-2.691,6-6,6Zm14,2c0-2.206-1.794-4-4-4s-4,1.794-4,4h-2v7c0,1.654,1.346,3,3,3h6c1.654,0,3-1.346,3-3v-7h-2Zm-4-2c1.103,0,2,.897,2,2h-4c0-1.103,.897-2,2-2Zm-8,9v-7H5c-2.761,0-5,2.239-5,5v5H11.026c-.635-.838-1.026-1.87-1.026-3Z"
-                fill="#ffffff"
-                fillOpacity="1"
-                data-original-color="#000000ff"
-                stroke="none"
-                strokeOpacity="1"
-              />
-            </g>
-          </svg>
-        ),
-        label: "Usuarios",
-        route: "/profile",
-      },
 
       {
         icon: (
@@ -121,6 +96,32 @@ const menuGroups = [
         icon: (
           <svg
             xmlns="http://www.w3.org/2000/svg"
+            id="Layer_1"
+            data-name="Layer 1"
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+          >
+            <g width="100%" height="100%" transform="matrix(1,0,0,1,0,0)">
+              <path
+                d="M8,12c-3.309,0-6-2.691-6-6S4.691,0,8,0s6,2.691,6,6-2.691,6-6,6Zm14,2c0-2.206-1.794-4-4-4s-4,1.794-4,4h-2v7c0,1.654,1.346,3,3,3h6c1.654,0,3-1.346,3-3v-7h-2Zm-4-2c1.103,0,2,.897,2,2h-4c0-1.103,.897-2,2-2Zm-8,9v-7H5c-2.761,0-5,2.239-5,5v5H11.026c-.635-.838-1.026-1.87-1.026-3Z"
+                fill="#ffffff"
+                fillOpacity="1"
+                data-original-color="#000000ff"
+                stroke="none"
+                strokeOpacity="1"
+              />
+            </g>
+          </svg>
+        ),
+        label: "Usuarios",
+        route: "/profile",
+      },
+
+      {
+        icon: (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
             enableBackground="new 0 0 24 24"
             height="24px"
             viewBox="0 0 24 24"
@@ -160,27 +161,7 @@ const menuGroups = [
         label: "Ajustes",
         route: "/ajustes",
       },
-      {
-        icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            enableBackground="new 0 0 24 24"
-            height="24px"
-            viewBox="0 0 24 24"
-            width="24px"
-            fill="#e8eaed"
-          >
-            <g>
-              <rect fill="none" height="24" width="24" />
-            </g>
-            <g>
-              <path d="M19,4h-1V2h-2v2H8V2H6v2H5C3.89,4,3.01,4.9,3.01,6L3,20c0,1.1,0.89,2,2,2h14c1.1,0,2-0.9,2-2V6C21,4.9,20.1,4,19,4z M19,20 H5V10h14V20z M9,14H7v-2h2V14z M13,14h-2v-2h2V14z M17,14h-2v-2h2V14z M9,18H7v-2h2V18z M13,18h-2v-2h2V18z M17,18h-2v-2h2V18z" />
-            </g>
-          </svg>
-        ),
-        label: "Calendario",
-        route: "/calendar",
-      },
+
       {
         icon: (
           <svg
