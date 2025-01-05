@@ -18,6 +18,8 @@
     "date-fns": "^4.1.0",
     "flatpickr": "^4.6.13",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
     "jsvectormap": "^1.6.0",
     "mysql2": "^3.11.4",
     "next": "^15.0.3",
