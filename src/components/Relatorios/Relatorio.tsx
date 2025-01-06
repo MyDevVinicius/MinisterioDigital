@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { toast } from "react-toastify";
 
 interface FilterComponentProps {
   onFilterChange: (filters: {
@@ -87,7 +88,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
       const data = await response.json();
       setDados(data);
     } catch (error) {
-      console.error("Erro ao gerar relatório:", error);
+      toast.error("Erro ao gerar relatório:", error);
       setDados([]);
     } finally {
       setLoading(false);
@@ -106,7 +107,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
   // Função para exportar os dados para um PDF
   const handleExportarPDF = async () => {
     const doc = new jsPDF();
-    const titulo = "Relatório";
+    const titulo = "Relatório de Entradas e Saídas";
     const dataAtual = new Date().toLocaleDateString();
     const horaAtual = new Date().toLocaleTimeString();
 
@@ -138,10 +139,10 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     }
 
     // Configurações de fonte
-    const fontePadrao = "helvetica";
-    const tamanhoFonteTitulo = 14;
-    const tamanhoFonteTexto = 10;
-    const margemEsquerda = 14;
+    const fontePadrao = "Poppins";
+    const tamanhoFonteTitulo = 12;
+    const tamanhoFonteTexto = 8;
+    const margemEsquerda = 6;
 
     // Carregar a logo como base64
     const logoBase64 = await fetch("/logosoft.png")
@@ -156,7 +157,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
       });
 
     // Adicionar logo
-    const logoWidth = 40; // Largura da logo
+    const logoWidth = 50; // Largura da logo
     const logoHeight = 18; // Altura da logo
     const logoX = margemEsquerda; // Posição X
     const logoY = 10; // Posição Y
@@ -165,7 +166,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     // Adicionar data, hora e informações do usuário
     doc.setFont(fontePadrao, "normal");
     doc.setFontSize(tamanhoFonteTexto);
-    const textoDataHora = `Data: ${dataAtual}  |  Hora: ${horaAtual}`;
+    const textoDataHora = `Gerado em : ${dataAtual} as ${horaAtual}`;
     const margemDireita = doc.internal.pageSize.width - margemEsquerda;
     doc.text(textoDataHora, margemDireita, 20, { align: "right" });
 
@@ -179,12 +180,12 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
 
     // Configuração da tabela
     const tableColumn = [
-      "Observação",
-      "Tipo",
-      "Valor",
-      "Forma de Pagamento",
-      "Data de Lançamento",
-      "Lançamento Feito Por",
+      "Observação:",
+      "Tipo:",
+      "Valor:",
+      "Forma de Pagamento:",
+      "Data de Lançamento:",
+      "Lançamento feito por:",
     ];
     const tableRows: string[][] = [];
 
@@ -206,9 +207,20 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
       body: tableRows,
       startY: logoY + logoHeight + 20,
       styles: {
-        halign: "center", // Centralizar texto nas células
-        valign: "middle", // Centralizar verticalmente
+        halign: "center", // Centraliza o texto em todas as células por padrão
+        valign: "middle", // Centraliza verticalmente o texto nas células
         fontSize: tamanhoFonteTexto,
+      },
+      headStyles: {
+        fillColor: [28, 107, 110], // Cor de fundo no formato RGB (bg-media equivalente ao cinza escuro do Tailwind)
+        textColor: 255, // Cor do texto (branco)
+        halign: "center", // Centraliza o texto no cabeçalho
+        valign: "middle", // Centraliza verticalmente o texto no cabeçalho
+        fontStyle: "bold", // Negrito no cabeçalho
+      },
+      bodyStyles: {
+        halign: "center", // Centraliza o texto nos dados da tabela
+        valign: "middle", // Centraliza verticalmente os dados
       },
       columnStyles: {
         0: { cellWidth: "auto" },
@@ -218,7 +230,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         4: { cellWidth: "auto" },
         5: { cellWidth: "auto" },
       },
-      tableWidth: "wrap", // Ajusta a tabela para ocupar a largura da página
+      tableWidth: "block", // Ajusta a tabela para ocupar a largura necessária
     });
 
     // Salvar o arquivo PDF
@@ -367,13 +379,13 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
       <div className="mt-6 flex justify-end space-x-4">
         <button
           onClick={handleGerarRelatorio}
-          className="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          className="rounded-lg bg-media px-4 py-2 text-white"
         >
           {loading ? "Carregando..." : "Gerar Relatório"}
         </button>
         <button
           onClick={handleExportarPDF}
-          className="rounded-lg bg-green-500 px-4 py-2 text-white hover:bg-green-600"
+          className="rounded-lg bg-orange-500 px-4 py-2 text-white"
         >
           Exportar PDF
         </button>
@@ -384,42 +396,36 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         {dados.length === 0 ? (
           <p>Nenhum dado encontrado.</p>
         ) : (
-          <table className="w-full table-auto border-collapse border border-gray-300">
+          <table className="w-full table-auto border-collapse overflow-hidden rounded-lg">
             <thead>
-              <tr>
-                <th className="border border-gray-300 px-4 py-2">Observação</th>
-                <th className="border border-gray-300 px-4 py-2">Tipo</th>
-                <th className="border border-gray-300 px-4 py-2">Valor</th>
-                <th className="border border-gray-300 px-4 py-2">
-                  Forma de Pagamento
-                </th>
-                <th className="border border-gray-300 px-4 py-2">
-                  Data de Lançamento
-                </th>
-                <th className="border border-gray-300 px-4 py-2">
-                  Lançado por
-                </th>
+              <tr className="bg-white">
+                <th className="px-4 py-2 text-media">Observação</th>
+                <th className="px-4 py-2 text-media">Tipo</th>
+                <th className="px-4 py-2 text-media">Valor</th>
+                <th className="px-4 py-2 text-media">Forma de Pagamento</th>
+                <th className="px-4 py-2 text-media">Data de Lançamento</th>
+                <th className="px-4 py-2 text-media">Lançado por</th>
               </tr>
             </thead>
             <tbody>
               {dados.map((item, index) => (
                 <tr key={index}>
-                  <td className="border border-gray-300 px-4 py-2">
+                  <td className="border-black-400 border px-4 py-2 text-center">
                     {item.observacao}
                   </td>
-                  <td className="border border-gray-300 px-4 py-2">
+                  <td className="border-black-400 border px-4 py-2 text-center">
                     {item.tipo}
                   </td>
-                  <td className="border border-gray-300 px-4 py-2">
+                  <td className="border-black-400 border px-4 py-2 text-center">
                     {item.valor}
                   </td>
-                  <td className="border border-gray-300 px-4 py-2">
+                  <td className="border-black-400 border px-4 py-2 text-center">
                     {item.formaPagamento}
                   </td>
-                  <td className="border border-gray-300 px-4 py-2">
+                  <td className="border-black-400 border px-4 py-2 text-center">
                     {formatarData(item.data)}
                   </td>
-                  <td className="border border-gray-300 px-4 py-2">
+                  <td className="border-black-400 border px-4 py-2 text-center">
                     {item.usuarioNome}
                   </td>
                 </tr>
