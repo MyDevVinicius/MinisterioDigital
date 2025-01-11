@@ -106,6 +106,7 @@ const MembrosList: React.FC = () => {
     }
   };
 
+  // No momento de salvar ou editar
   const handleEditMembro = async () => {
     const nomeBanco = localStorage.getItem("nome_banco");
 
@@ -113,6 +114,9 @@ const MembrosList: React.FC = () => {
       toast.error("Nome do banco não encontrado!");
       return;
     }
+
+    // Remover caracteres não numéricos (parênteses, espaços, etc.)
+    const formattedWhatsapp = numero.replace(/[^\d]/g, ""); // Ex: (65) 9 9334-1126 -> 65993341126
 
     const formattedDataNascimento = new Date(dataNascimento)
       .toISOString()
@@ -127,7 +131,7 @@ const MembrosList: React.FC = () => {
           data_nascimento: formattedDataNascimento,
           endereco,
           status,
-          numero,
+          numero: formattedWhatsapp, // Envia o número sem caracteres não numéricos
           email,
         }),
         headers: {
