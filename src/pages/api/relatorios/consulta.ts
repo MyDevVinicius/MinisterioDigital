@@ -24,64 +24,62 @@ export default async function handler(
   try {
     clientConnection = await getClientConnection(banco);
 
-    let table = "";
-    let tipoField = "";
-
-    if (tipo === "entrada") {
-      table = "entrada";
-      tipoField = "tipo"; // A coluna `tipo` existe na tabela `entrada`
-    } else if (tipo === "saida") {
-      table = "saida";
-      tipoField = "tipo"; // A coluna `tipo` existe na tabela `saida`
-    } else {
-      // Quando for "todos", consulta tanto `entrada` quanto `saida`
-      table = "(entrada UNION ALL saida)";
-      tipoField = "tipo";
-    }
-
-    // Atualizando a consulta para incluir o campo `observacao` e o nome do usuário
+    // Definição inicial da consulta
     let query = `
-      SELECT ${tipoField}, forma_pagamento AS formaPagamento, valor, data, 
-             usuario_id AS usuario, observacao, u.nome AS usuarioNome
-      FROM ${table} t
-      LEFT JOIN usuarios u ON t.usuario_id = u.id
-      WHERE 1=1
-    `;
+  SELECT 
+    t.tipo,
+    t.forma_pagamento AS formaPagamento,
+    t.valor AS valor, 
+    t.data,
+    t.usuario_id AS usuario,
+    t.observacao,
+    u.nome AS usuarioNome
+  FROM (
+    SELECT 'entrada' AS tipo, forma_pagamento, valor, data, usuario_id, observacao
+    FROM entrada
+    UNION ALL
+    SELECT 'saida' AS tipo, forma_pagamento, valor_pago AS valor_pago, data, usuario_id, observacao
+    FROM saida
+  ) t
+  LEFT JOIN usuarios u ON t.usuario_id = u.id
+  WHERE 1=1
+`;
+
     const params: any[] = [];
 
-    // Filtra por subtipo (apenas na tabela `entrada` porque `saida` não tem `subtipo`)
-    if (subtipo && tipo === "entrada" && subtipo !== "todos") {
-      query += " AND tipo = ?";
-      params.push(subtipo); // Substitui `subtipo` por valores da coluna `tipo` em `entrada`
+    // Filtros dinâmicos
+    if (tipo) {
+      query += " AND t.tipo = ?";
+      params.push(tipo);
     }
 
-    // Filtra por forma de pagamento
+    if (subtipo && tipo === "entrada" && subtipo !== "todos") {
+      query += " AND t.tipo = 'entrada' AND t.observacao = ?";
+      params.push(subtipo);
+    }
+
     if (formaPagamento && formaPagamento !== "todos") {
-      query += " AND forma_pagamento = ?";
+      query += " AND t.forma_pagamento = ?";
       params.push(formaPagamento);
     }
 
-    // Filtra por data de início
     if (dataInicio) {
-      query += " AND data >= ?";
+      query += " AND t.data >= ?";
       params.push(dataInicio);
     }
 
-    // Filtra por data final
     if (dataFinal) {
-      query += " AND data <= ?";
+      query += " AND t.data <= ?";
       params.push(dataFinal);
     }
 
-    // Filtra por id do usuário
     if (usuarioId) {
-      query += " AND usuario_id = ?";
+      query += " AND t.usuario_id = ?";
       params.push(usuarioId);
     }
 
-    // Executa a consulta no banco
+    // Executar consulta
     const [rows] = await clientConnection.query(query, params);
-
     return res.status(200).json(rows);
   } catch (error) {
     console.error("Erro ao consultar registros:", error);

@@ -72,17 +72,18 @@ export default async function handler(
     // Lógica para determinar o status com base em valorPago e dataVencimento
     let status = "Pendente"; // Default status
 
-    // Lógica de status:
     if (valorPago === valor) {
       status = "Pago"; // Se o valor pago for igual ao valor total, o status é 'Pago'
-    } else if (valorPago === 0 && dataVencimento < today) {
-      status = "Vencida"; // Se o valor pago for zero e a data de vencimento já passou, é 'Vencida'
-    } else if (valorPago === 0 && dataVencimento > today) {
-      status = "Pendente"; // Se o valor pago for zero, mas ainda está dentro do prazo, é 'Pendente'
-    } else if (valorPago < valor && dataVencimento < today) {
-      status = "Vencida"; // Se o valor pago for menor que o total e a data já passou, é 'Vencida'
-    } else if (valorPago < valor && dataVencimento >= today) {
-      status = "Pago Parcial"; // Se o valor pago for menor que o total, mas dentro do prazo, é 'Pago Parcial'
+    } else if (
+      valorPago > 0 &&
+      valorPago < valor &&
+      new Date(dataVencimento) >= today
+    ) {
+      status = "Pago Parcial"; // Valor pago parcial e dentro do prazo
+    } else if (valorPago === 0 && new Date(dataVencimento) >= today) {
+      status = "Pendente"; // Não pago e dentro do prazo
+    } else if (new Date(dataVencimento) < today) {
+      status = "Vencida"; // Fora do prazo
     }
 
     // Garantir que o status está dentro dos valores esperados

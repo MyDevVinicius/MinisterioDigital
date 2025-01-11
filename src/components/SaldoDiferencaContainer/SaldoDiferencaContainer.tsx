@@ -59,7 +59,7 @@ const SaldoDiferencaContainer: React.FC = () => {
           <p className="text-sm text-red-500">{error}</p>
         ) : diferenca !== null ? (
           diferenca === 0 ? (
-            <p className="text-2xl font-bold text-blue-600">Sem diferença</p>
+            <p className="text-2xl font-bold text-blue-600">R$ 0,00</p>
           ) : (
             <p className="text-2xl font-bold text-blue-600">
               R${" "}

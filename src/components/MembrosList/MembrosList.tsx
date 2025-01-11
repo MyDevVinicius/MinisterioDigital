@@ -11,6 +11,8 @@ interface Membro {
   endereco: string;
   status: "ativo" | "inativo";
   usuario_id: number | null;
+  numero?: string;
+  email?: string;
 }
 
 const MembrosList: React.FC = () => {
@@ -20,6 +22,8 @@ const MembrosList: React.FC = () => {
   const [dataNascimento, setDataNascimento] = useState("");
   const [endereco, setEndereco] = useState("");
   const [status, setStatus] = useState<"ativo" | "inativo">("ativo");
+  const [numero, setNumero] = useState("");
+  const [email, setEmail] = useState("");
   const [editingMembro, setEditingMembro] = useState<Membro | null>(null);
 
   useEffect(() => {
@@ -57,6 +61,8 @@ const MembrosList: React.FC = () => {
     setDataNascimento("");
     setEndereco("");
     setStatus("ativo");
+    setNumero("");
+    setEmail("");
   };
 
   const handleAddMembro = async () => {
@@ -79,6 +85,8 @@ const MembrosList: React.FC = () => {
           data_nascimento: formattedDataNascimento,
           endereco,
           status,
+          numero,
+          email,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -119,6 +127,8 @@ const MembrosList: React.FC = () => {
           data_nascimento: formattedDataNascimento,
           endereco,
           status,
+          numero,
+          email,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -158,6 +168,8 @@ const MembrosList: React.FC = () => {
 
     setEndereco(membro.endereco || "");
     setStatus(membro.status);
+    setNumero(membro.numero || "");
+    setEmail(membro.email || "");
   };
 
   const handleDeleteMembro = async (id: number) => {
@@ -231,6 +243,20 @@ const MembrosList: React.FC = () => {
                   placeholder="Endereço"
                   className="my-2 w-full border border-media p-2 font-bold text-black"
                 />
+                <input
+                  type="text"
+                  value={numero || ""}
+                  onChange={(e) => setNumero(e.target.value)}
+                  placeholder="WhatsApp"
+                  className="my-2 w-full border border-media p-2 font-bold text-black"
+                />
+                <input
+                  type="email"
+                  value={email || ""}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  className="my-2 w-full border border-media p-2 font-bold text-black"
+                />
                 <select
                   value={status}
                   onChange={(e) =>
@@ -269,6 +295,8 @@ const MembrosList: React.FC = () => {
                   Data Nascimento
                 </th>
                 <th className="text-bold px-4 py-2 text-white">Endereço</th>
+                <th className="text-bold px-4 py-2 text-white">WhatsApp</th>
+                <th className="text-bold px-4 py-2 text-white">Email</th>
                 <th className="text-bold px-4 py-2 text-white">Status</th>
                 <th className="text-bold px-4 py-2 text-white">Ações</th>
               </tr>
@@ -286,7 +314,10 @@ const MembrosList: React.FC = () => {
                     {membro.endereco}
                   </td>
                   <td className="px-4 py-2 text-center font-bold text-black">
-                    {membro.status}
+                    {membro.numero}
+                  </td>
+                  <td className="px-4 py-2 text-center font-bold text-black">
+                    {membro.email}
                   </td>
                   <td className="px-4 py-2 text-center font-bold text-black">
                     <button

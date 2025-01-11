@@ -10,14 +10,14 @@ interface FilterComponentProps {
     formaPagamento: string;
     data: string;
     usuario: string;
-    observacao: string; // Adiciona o campo 'observacao'
+    observacao: string;
   }) => void;
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
   onFilterChange,
 }) => {
-  const [tipo, setTipo] = useState<string>(""); // Tipo de transação: entrada ou saída
+  const [tipo, setTipo] = useState<string>("");
   const [subtipo, setSubtipo] = useState<string>("todos");
   const [formaPagamento, setFormaPagamento] = useState<string>("todos");
   const [dataInicio, setDataInicio] = useState<string>("");
@@ -87,8 +87,10 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
 
       const data = await response.json();
       setDados(data);
-    } catch (error) {
-      toast.error("Erro ao gerar relatório:", error);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      toast.error("Erro ao gerar relatório: " + errorMessage);
       setDados([]);
     } finally {
       setLoading(false);
@@ -107,7 +109,12 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
   // Função para exportar os dados para um PDF
   const handleExportarPDF = async () => {
     const doc = new jsPDF();
-    const titulo = "Relatório de Entradas e Saídas";
+    const titulo =
+      tipo === "entrada"
+        ? "Relatório de Entradas"
+        : tipo === "saida"
+          ? "Relatório de Saídas"
+          : "Relatório de Entradas e Saídas";
     const dataAtual = new Date().toLocaleDateString();
     const horaAtual = new Date().toLocaleTimeString();
 
@@ -127,8 +134,10 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
       );
       if (!response.ok) throw new Error("Erro ao buscar dados do usuário.");
       usuario = await response.json();
-    } catch (error) {
-      console.error(error.message);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error(errorMessage);
       console.log("Erro ao buscar informações do usuário.");
       return;
     }
@@ -202,25 +211,25 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     });
 
     // Adicionar tabela
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [tableColumn],
       body: tableRows,
       startY: logoY + logoHeight + 20,
       styles: {
-        halign: "center", // Centraliza o texto em todas as células por padrão
-        valign: "middle", // Centraliza verticalmente o texto nas células
+        halign: "center",
+        valign: "middle",
         fontSize: tamanhoFonteTexto,
       },
       headStyles: {
-        fillColor: [28, 107, 110], // Cor de fundo no formato RGB (bg-media equivalente ao cinza escuro do Tailwind)
-        textColor: 255, // Cor do texto (branco)
-        halign: "center", // Centraliza o texto no cabeçalho
-        valign: "middle", // Centraliza verticalmente o texto no cabeçalho
-        fontStyle: "bold", // Negrito no cabeçalho
+        fillColor: [28, 107, 110],
+        textColor: 255,
+        halign: "center",
+        valign: "middle",
+        fontStyle: "bold",
       },
       bodyStyles: {
-        halign: "center", // Centraliza o texto nos dados da tabela
-        valign: "middle", // Centraliza verticalmente os dados
+        halign: "center",
+        valign: "middle",
       },
       columnStyles: {
         0: { cellWidth: "auto" },
@@ -230,7 +239,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         4: { cellWidth: "auto" },
         5: { cellWidth: "auto" },
       },
-      tableWidth: "block", // Ajusta a tabela para ocupar a largura necessária
+      tableWidth: "block",
     });
 
     // Salvar o arquivo PDF

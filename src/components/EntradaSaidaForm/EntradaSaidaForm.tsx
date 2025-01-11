@@ -182,7 +182,6 @@ const EntradaSaidaForm: React.FC = () => {
       );
       return;
     }
-
     // Determinando o status da saída
     let status = "Pendente"; // Pendente por padrão
 
@@ -195,34 +194,26 @@ const EntradaSaidaForm: React.FC = () => {
 
       const dataAtual = new Date();
       const valorPago = formData.valorPago || 0;
+      const valorTotal = formData.valor;
 
       // Lógica de status para saída
-      if (valorPago === formData.valor) {
+      if (valorPago === valorTotal) {
         status = "Pago"; // Pagamento completo
       } else if (
-        valorPago < formData.valor &&
+        valorPago > 0 &&
+        valorPago < valorTotal &&
         dataVencimento &&
         dataVencimento >= dataAtual
       ) {
-        status = "Pago Parcial"; // Pago parcialmente, se não passou da data
+        status = "Pago Parcial";
       } else if (
         valorPago === 0 &&
         dataVencimento &&
         dataVencimento >= dataAtual
       ) {
-        status = "Pendente"; // Pendente se valor pago for 0 e não passou da data
-      } else if (
-        valorPago < formData.valor &&
-        dataVencimento &&
-        dataVencimento < dataAtual
-      ) {
-        status = "Vencida"; // Vencida se passou da data e não foi pago integralmente
-      } else if (
-        valorPago === formData.valor &&
-        dataVencimento &&
-        dataVencimento < dataAtual
-      ) {
-        status = "Pago"; // Pago, mesmo se passou da data de vencimento
+        status = "Pendente"; // Não pago e dentro do prazo
+      } else if (dataVencimento && dataVencimento < dataAtual) {
+        status = "Vencida"; // Não pago e fora do prazo
       }
     }
 
