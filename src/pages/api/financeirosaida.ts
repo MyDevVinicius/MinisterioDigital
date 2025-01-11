@@ -5,8 +5,6 @@ import { RowDataPacket } from "mysql2";
 // Tipagem para o usuário
 interface Usuario extends RowDataPacket {
   email: string;
-  nome: string;
-  cargo: string;
   id: number;
 }
 
@@ -21,10 +19,16 @@ export default async function handler(
       .json({ error: `Método ${req.method} não permitido` });
   }
 
-  // Obter e-mail do cabeçalho
+  // Obter e-mail e nome do banco do cabeçalho
   const email = req.headers["x-usuario-email"] as string;
+  const nome_banco = req.headers["x-nome-banco"] as string;
+
   if (!email) {
     return res.status(400).json({ error: "E-mail não fornecido no cabeçalho" });
+  }
+
+  if (!nome_banco) {
+    return res.status(400).json({ error: "Nome do banco não fornecido." });
   }
 
   // Obter dados do corpo da requisição
@@ -35,19 +39,11 @@ export default async function handler(
     valor,
     valorPago,
     dataVencimento,
-    dataTransacao,
+    dataPagamento,
   } = req.body;
-  const nome_banco = req.headers["x-nome-banco"] as string;
 
   // Verificar campos obrigatórios
-  if (
-    !nome_banco ||
-    !observacao ||
-    !tipo ||
-    !formaPagamento ||
-    !valor ||
-    !dataVencimento
-  ) {
+  if (!tipo || !valor || !formaPagamento || !dataVencimento) {
     return res.status(400).json({ error: "Campos obrigatórios ausentes." });
   }
 
@@ -70,59 +66,69 @@ export default async function handler(
 
     usuarioId = userRows[0].id;
 
-    // Preparar a inserção na tabela 'contas_a_pagar' com a data de vencimento correta
-    const queryParamsContasAPagar = [
-      observacao,
-      valor,
-      dataVencimento, // Usar a data de vencimento fornecida
-      "Pendente", // Status inicial
-      valorPago || 0, // Se não houver valor pago, será 0
-    ];
+    // Obter a data atual (hoje) para comparações
+    const today = new Date();
 
-    const queryContasAPagar = `
-      INSERT INTO contas_a_pagar (observacao, valor, data_vencimento, status, valor_pago) 
-      VALUES (?, ?, ?, ?, ?)
-    `;
+    // Lógica para determinar o status com base em valorPago e dataVencimento
+    let status = "Pendente"; // Default status
 
-    // Inserir os dados na tabela 'contas_a_pagar'
-    const [insertContasResult] = await clientConnection.query(
-      queryContasAPagar,
-      queryParamsContasAPagar,
-    );
+    // Lógica de status:
+    if (valorPago === valor) {
+      status = "Pago"; // Se o valor pago for igual ao valor total, o status é 'Pago'
+    } else if (valorPago === 0 && dataVencimento < today) {
+      status = "Vencida"; // Se o valor pago for zero e a data de vencimento já passou, é 'Vencida'
+    } else if (valorPago === 0 && dataVencimento > today) {
+      status = "Pendente"; // Se o valor pago for zero, mas ainda está dentro do prazo, é 'Pendente'
+    } else if (valorPago < valor && dataVencimento < today) {
+      status = "Vencida"; // Se o valor pago for menor que o total e a data já passou, é 'Vencida'
+    } else if (valorPago < valor && dataVencimento >= today) {
+      status = "Pago Parcial"; // Se o valor pago for menor que o total, mas dentro do prazo, é 'Pago Parcial'
+    }
 
-    const contaId = (insertContasResult as any).insertId;
+    // Garantir que o status está dentro dos valores esperados
+    const validStatuses = ["Pago", "Pago Parcial", "Pendente", "Vencida"];
+    if (!validStatuses.includes(status)) {
+      status = "Pendente"; // Se algum valor inválido foi atribuído, definir o status como 'Pendente'
+    }
 
     // Preparar a inserção na tabela 'saida'
     const queryParamsSaida = [
-      observacao,
       tipo,
-      formaPagamento,
+      observacao,
       valor,
-      dataTransacao,
+      valorPago || 0, // Valor pago opcional, padrão 0
+      status, // Status determinado pela lógica
+      formaPagamento,
+      dataVencimento,
+      dataPagamento || null, // Data de pagamento opcional
       usuarioId,
-      contaId, // Relacionando a saída com a conta a pagar
     ];
 
     const querySaida = `
-      INSERT INTO saida (observacao, tipo, forma_pagamento, valor, data, usuario_id, conta_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO saida (
+        tipo, 
+        observacao, 
+        valor, 
+        valor_pago, 
+        status, 
+        forma_pagamento, 
+        data_vencimento, 
+        data_pagamento, 
+        usuario_id
+      ) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     // Inserir dados na tabela 'saida'
     await clientConnection.query(querySaida, queryParamsSaida);
 
     // Retornar sucesso
-    return res
-      .status(201)
-      .json({ message: "Saída e conta registradas com sucesso." });
+    return res.status(201).json({ message: "Saída registrada com sucesso." });
   } catch (error) {
     console.error("Erro ao registrar saída:", error);
-    if (clientConnection) {
-      clientConnection.end();
-    }
     return res.status(500).json({ error: "Erro interno do servidor." });
   } finally {
-    // Fechar a conexão com o banco de dados se não foi fechada no catch
+    // Fechar a conexão com o banco de dados
     if (clientConnection) clientConnection.end();
   }
 }

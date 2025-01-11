@@ -4,10 +4,6 @@ import { SlWallet } from "react-icons/sl";
 import { BsArrowUpRight } from "react-icons/bs";
 import { BsArrowDownLeft } from "react-icons/bs";
 
-interface EntradasSaidasData {
-  valor: string;
-}
-
 const SaldoDiferencaContainer: React.FC = () => {
   const [entradas, setEntradas] = useState<number | null>(null);
   const [saidas, setSaidas] = useState<number | null>(null);
@@ -19,56 +15,30 @@ const SaldoDiferencaContainer: React.FC = () => {
       try {
         const nomeBanco = localStorage.getItem("nome_banco");
         const chave = localStorage.getItem("codigo_verificacao");
+        const mes = "01"; // Exemplo de mês
+        const ano = "2025"; // Exemplo de ano
 
         if (!nomeBanco || !chave) {
           throw new Error(
-            "Nome do banco ou chave de verificação não encontrados no localStorage.",
+            "Nome do banco ou chave de verificação não encontrados.",
           );
         }
 
-        // Buscar entradas e saídas simultaneamente
-        const [entradasResponse, saidasResponse] = await Promise.all([
-          axios.get<EntradasSaidasData[]>("/api/entradas", {
-            headers: {
-              "x-verificacao-chave": chave,
-              "x-nome-banco": nomeBanco,
-            },
-          }),
-          axios.get<EntradasSaidasData[]>("/api/saidas", {
-            headers: {
-              "x-verificacao-chave": chave,
-              "x-nome-banco": nomeBanco,
-            },
-          }),
-        ]);
+        // Requisição para a API saidascard
+        const response = await axios.get("/api/saidascard", {
+          headers: {
+            "x-verificacao-chave": chave,
+            "x-nome-banco": nomeBanco,
+            "x-mes": mes,
+            "x-ano": ano,
+          },
+        });
 
-        if (entradasResponse.status !== 200 || saidasResponse.status !== 200) {
-          throw new Error("Erro ao buscar entradas ou saídas.");
-        }
-
-        const entradasData = entradasResponse.data;
-        const saidasData = saidasResponse.data;
-
-        // Soma as entradas
-        const totalEntradas = entradasData.reduce((acc, entrada) => {
-          const valorNumerico = parseFloat(
-            entrada.valor.replace(/[^\d.-]/g, ""),
-          );
-          return acc + valorNumerico;
-        }, 0);
-
-        // Soma as saídas
-        const totalSaidas = saidasData.reduce((acc, saida) => {
-          const valorNumerico = parseFloat(saida.valor.replace(/[^\d.-]/g, ""));
-          return acc + valorNumerico;
-        }, 0);
-
-        // Calcula a diferença entre entradas e saídas
-        const diferencaCalculada = totalEntradas - totalSaidas;
+        const { totalEntradas, totalSaidas, diferenca } = response.data;
 
         setEntradas(totalEntradas);
         setSaidas(totalSaidas);
-        setDiferenca(diferencaCalculada);
+        setDiferenca(diferenca);
       } catch (err: any) {
         console.error(err);
         setError(err.message);
@@ -88,9 +58,14 @@ const SaldoDiferencaContainer: React.FC = () => {
         {error ? (
           <p className="text-sm text-red-500">{error}</p>
         ) : diferenca !== null ? (
-          <p className="text-2xl font-bold text-blue-600">
-            R$ {diferenca.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </p>
+          diferenca === 0 ? (
+            <p className="text-2xl font-bold text-blue-600">Sem diferença</p>
+          ) : (
+            <p className="text-2xl font-bold text-blue-600">
+              R${" "}
+              {diferenca.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+          )
         ) : (
           <p className="text-sm text-gray-400">Carregando...</p>
         )}
@@ -98,11 +73,16 @@ const SaldoDiferencaContainer: React.FC = () => {
       <div className="mt-4 flex justify-between text-sm text-gray-700">
         <span className="text-green-500">
           <BsArrowUpRight size={20} />
-          R$ {entradas?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          R${" "}
+          {entradas !== null
+            ? entradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+            : "0,00"}
         </span>
         <span className="text-red-500">
           <BsArrowDownLeft size={20} /> R${" "}
-          {saidas?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          {saidas !== null
+            ? saidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+            : "0,00"}
         </span>
       </div>
     </div>

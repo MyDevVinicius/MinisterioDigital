@@ -30,36 +30,24 @@ export default async function handler(
     // Iniciar uma transação para garantir a integridade dos dados
     await clientConnection.beginTransaction();
 
-    // Excluir da tabela 'contas_a_pagar'
-    const [contaResult] = await clientConnection.execute(
-      `DELETE FROM contas_a_pagar WHERE id = ?`,
-      [idNumber],
-    );
-
-    if ((contaResult as any).affectedRows === 0) {
-      // Se a conta não foi encontrada, desfazemos a transação e retornamos o erro
-      await clientConnection.rollback();
-      return res.status(404).json({ message: "Conta não encontrada" });
-    }
-
-    // Excluir da tabela 'saida', considerando que 'conta_id' é a referência à tabela 'contas_a_pagar'
+    // Excluir da tabela 'saida' com base no id fornecido
     const [saidaResult] = await clientConnection.execute(
-      `DELETE FROM saida WHERE conta_id = ?`,
+      `DELETE FROM saida WHERE id = ?`,
       [idNumber],
     );
 
     if ((saidaResult as any).affectedRows === 0) {
-      console.warn(
-        `Nenhuma saída associada com a conta ID ${idNumber} foi encontrada`,
-      );
+      // Se não houver saída com o id fornecido, desfazemos a transação e retornamos o erro
+      await clientConnection.rollback();
+      return res.status(404).json({ message: "Saída não encontrada" });
     }
 
-    // Com ambas as exclusões realizadas, confirmamos a transação
+    // Com a exclusão realizada, confirmamos a transação
     await clientConnection.commit();
 
-    res.status(200).json({ message: "Conta e saída excluídas com sucesso" });
+    res.status(200).json({ message: "Saída excluída com sucesso" });
   } catch (error: unknown) {
-    console.error("Erro ao excluir conta e saída:", error);
+    console.error("Erro ao excluir saída:", error);
 
     // Se ocorreu qualquer erro, desfazemos a transação
     if (clientConnection) {
@@ -67,7 +55,7 @@ export default async function handler(
     }
 
     res.status(500).json({
-      message: "Erro ao excluir conta e saída",
+      message: "Erro ao excluir saída",
       error: (error as Error).message || "Erro desconhecido",
     });
   } finally {

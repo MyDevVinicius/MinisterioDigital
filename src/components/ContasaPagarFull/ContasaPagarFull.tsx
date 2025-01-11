@@ -66,7 +66,7 @@ const ContasAPagarList: React.FC = () => {
       const response = await fetch(`/api/contasapagardelete/${id}`, {
         method: "DELETE",
         headers: {
-          "x-nome-banco": nomeBanco, // Corrigido
+          "x-nome-banco": nomeBanco,
           "x-verificacao-chave": chave,
         },
       });
@@ -75,13 +75,13 @@ const ContasAPagarList: React.FC = () => {
 
       if (response.ok) {
         setContas((prev) => prev.filter((conta) => conta.id !== id));
-        toast.success("Conta excluída com sucesso!");
+        toast.success("Saída excluída com sucesso!");
       } else {
-        toast.error(data.message || "Erro ao excluir conta.");
+        toast.error(data.message || "Erro ao excluir saída.");
       }
     } catch (error) {
-      console.error("Erro ao excluir conta:", error);
-      toast.error("Erro ao excluir conta");
+      console.error("Erro ao excluir saída:", error);
+      toast.error("Erro ao excluir saída");
     }
   };
 
@@ -100,11 +100,11 @@ const ContasAPagarList: React.FC = () => {
         status = "Pago"; // Se o valor pago for igual ao valor total, o status é 'Pago'
       } else if (valorPago === 0 && dataVencimento < today) {
         status = "Vencida"; // Se o valor pago for zero e a data de vencimento já passou, é 'Vencida'
-      } else if (valorPago === 0) {
+      } else if (valorPago === 0 && dataVencimento > today) {
         status = "Pendente"; // Se o valor pago for zero, mas ainda está dentro do prazo, é 'Pendente'
       } else if (valorPago < valorTotal && dataVencimento < today) {
         status = "Vencida"; // Se o valor pago for menor que o total e a data já passou, é 'Vencida'
-      } else if (valorPago < valorTotal) {
+      } else if (valorPago < valorTotal && dataVencimento > today) {
         status = "Pago Parcial"; // Se o valor pago for menor que o total, mas dentro do prazo, é 'Pago Parcial'
       }
 

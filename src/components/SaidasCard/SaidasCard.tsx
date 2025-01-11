@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { MdOutlineMoneyOff } from "react-icons/md";
 import { BsArrowDownLeft } from "react-icons/bs";
 
 interface SaidasData {
-  valor: string;
+  valor_pago: string; // Alterado de "valor" para "valor_pago"
   data: string; // Supondo que a data das saídas esteja nesse formato
 }
 
@@ -56,7 +55,9 @@ const SaidasContainer: React.FC = () => {
         // Soma os valores das saídas
         const total = data.reduce((acc, saida) => {
           // Converte cada valor para número, removendo qualquer caractere indesejado como "R$"
-          const valorNumerico = parseFloat(saida.valor.replace(/[^\d.-]/g, ""));
+          const valorNumerico = parseFloat(
+            saida.valor_pago.replace(/[^\d.-]/g, ""),
+          );
           return acc + valorNumerico;
         }, 0);
 

@@ -43,17 +43,22 @@ export default async function handler(
 
     // Recalcula o status com base nos dados fornecidos
     const today = new Date();
-    const dueDate = new Date(data_vencimento);
-    const valorPago = parseFloat(valor_pago);
-    const valorTotal = parseFloat(valor);
+    const dueDate = new Date(data_vencimento); // Data de vencimento
+    const valorPago = parseFloat(valor_pago); // Valor pago
+    const valorTotal = parseFloat(valor); // Valor total
     let status = "Pendente"; // Status padrão
 
+    // Lógica de verificação do status
     if (valorPago === valorTotal) {
-      status = "Pago";
-    } else if (valorPago === 0) {
-      status = dueDate < today ? "Vencida" : "Pendente";
+      status = "Pago"; // Se o valor pago for igual ao valor total, o status é 'Pago'
+    } else if (valorPago === 0 && dueDate < today) {
+      status = "Vencida"; // Se o valor pago for zero e a data de vencimento já passou, é 'Vencida'
+    } else if (valorPago === 0 && dueDate > today) {
+      status = "Pendente"; // Se o valor pago for zero, mas ainda está dentro do prazo, é 'Pendente'
     } else if (valorPago < valorTotal && dueDate < today) {
-      status = "Pago Parcial";
+      status = "Vencida"; // Se o valor pago for menor que o total e a data já passou, é 'Vencida'
+    } else if (valorPago < valorTotal && dueDate > today) {
+      status = "Pago Parcial"; // Se o valor pago for menor que o total, mas dentro do prazo, é 'Pago Parcial'
     }
 
     // Estabelece a conexão com o banco usando o nome do banco fornecido
@@ -62,7 +67,7 @@ export default async function handler(
     // Realiza a atualização da conta no banco de dados
     await clientConnection.execute(
       `
-      UPDATE contas_a_pagar 
+      UPDATE saida 
       SET observacao = ?, valor = ?, valor_pago = ?, data_vencimento = ?, status = ? 
       WHERE id = ?
       `,

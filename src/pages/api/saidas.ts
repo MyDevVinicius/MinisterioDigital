@@ -12,13 +12,21 @@ export default async function handler(
       .json({ message: `Método ${req.method} não permitido.` });
   }
 
-  // Recupera os cabeçalhos para a chave de verificação e nome do banco
+  // Recupera os cabeçalhos para a chave de verificação, nome do banco, mês e ano
   const chave = req.headers["x-verificacao-chave"] as string | undefined;
   const nomeBanco = req.headers["x-nome-banco"] as string | undefined;
+  const mes = req.headers["x-mes"] as string | undefined;
+  const ano = req.headers["x-ano"] as string | undefined;
 
   if (!chave || !nomeBanco) {
     return res.status(400).json({
       message: "Chave de verificação ou nome do banco não fornecidos.",
+    });
+  }
+
+  if (!mes || !ano) {
+    return res.status(400).json({
+      message: "Mês ou ano não fornecidos nos cabeçalhos.",
     });
   }
 
@@ -31,7 +39,9 @@ export default async function handler(
 
     // Verifica o nome do banco associado à chave
     const [result] = await adminConnection.query<RowDataPacket[]>(
-      "SELECT nome_banco FROM clientes WHERE codigo_verificacao = ?",
+      `
+      SELECT nome_banco FROM clientes WHERE codigo_verificacao = ?
+    `,
       [chave],
     );
 
@@ -49,15 +59,21 @@ export default async function handler(
     // Conecta ao banco do cliente usando o nome do banco obtido
     clientConnection = await getClientConnection(databaseName);
 
-    // Consulta para buscar entradas
-    const [rows] = await clientConnection.query<RowDataPacket[]>(
-      "SELECT * FROM saida", // Substitua pela consulta real para entradas
-    );
+    // Consulta para buscar valores pagos com base no mês e ano
+    const query = `
+      SELECT valor_pago, data 
+      FROM saida 
+      WHERE MONTH(data) = ? AND YEAR(data) = ?
+    `;
+    const [rows] = await clientConnection.query<RowDataPacket[]>(query, [
+      mes,
+      ano,
+    ]);
 
-    // Retorna os dados de entradas
+    // Retorna os dados filtrados
     return res.status(200).json(rows);
   } catch (error: any) {
-    console.error("Erro ao buscar entradas:", error);
+    console.error("Erro ao buscar Saídas:", error);
     return res.status(500).json({
       message: "Erro interno no servidor.",
     });
