@@ -301,7 +301,6 @@ const MembrosList: React.FC = () => {
                 <th className="text-bold px-4 py-2 text-white">Endereço</th>
                 <th className="text-bold px-4 py-2 text-white">WhatsApp</th>
                 <th className="text-bold px-4 py-2 text-white">Email</th>
-                <th className="text-bold px-4 py-2 text-white">Status</th>
                 <th className="text-bold px-4 py-2 text-white">Ações</th>
               </tr>
             </thead>
