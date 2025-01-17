@@ -110,11 +110,11 @@ export default async function handler(
   } finally {
     if (adminConnection) {
       console.log("Liberando conexão com o banco administrativo.");
-      await adminConnection.release();
+      adminConnection.release();
     }
     if (clientConnection) {
       console.log("Liberando conexão com o banco do cliente.");
-      await clientConnection.release();
+      clientConnection.release();
     }
   }
 }

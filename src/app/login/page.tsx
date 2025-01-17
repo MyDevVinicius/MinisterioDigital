@@ -213,7 +213,15 @@ const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-sm rounded-md border bg-white p-6 shadow-lg">
+      <div className="absolute inset-0">
+        <img
+          src="/fundo.jpg"
+          alt="Imagem de Fundo"
+          className="h-full w-full object-cover opacity-50"
+        />
+      </div>
+
+      <div className="relative z-10 w-[23rem] max-w-sm rounded-md border bg-white p-6 shadow-lg">
         <ToastContainer position="top-right" autoClose={5000} />
         <div className="mb-4 flex justify-center">
           <Image src="/logosoft.png" alt="Logo" width={320} height={100} />
@@ -273,6 +281,10 @@ const LoginPage = () => {
           </div>
         )}
       </div>
+
+      <footer className="absolute bottom-0 w-full bg-forte p-4 text-center text-white">
+        &copy; Softwere Ministerio Digital | Todos os direitos reservados
+      </footer>
     </div>
   );
 };

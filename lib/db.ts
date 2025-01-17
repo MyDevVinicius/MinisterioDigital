@@ -4,7 +4,7 @@ import mysql from "mysql2/promise";
 const clientPools: { [key: string]: mysql.Pool } = {};
 
 // Pool de conexão para o banco admin_db (usado para a autenticação do cliente)
-let pool: mysql.Pool;
+let pool: mysql.Pool | undefined;
 
 // Função para obter o pool de conexões do admin_db
 export function getAdminConnectionPool() {
@@ -66,4 +66,24 @@ export async function getClientConnectionPool(nome_banco: string) {
 export async function getClientConnection(nome_banco: string) {
   const clientPool = await getClientConnectionPool(nome_banco);
   return await clientPool.getConnection(); // Retorna uma conexão do pool
+}
+
+// Função para fechar a conexão com o banco admin_db
+export async function closeAdminConnection() {
+  if (pool) {
+    await pool.end();
+    pool = undefined;
+    console.log("Conexão com o admin_db encerrada.");
+  }
+}
+
+// Função para fechar todas as conexões dos bancos dos clientes
+export async function closeAllClientConnections() {
+  for (const nome_banco in clientPools) {
+    if (clientPools[nome_banco]) {
+      await clientPools[nome_banco].end();
+      delete clientPools[nome_banco];
+      console.log(`Conexão com o banco ${nome_banco} encerrada.`);
+    }
+  }
 }

@@ -41,7 +41,7 @@ export default async function handler(
 
     const [rows] = await clientConnection.query<RowDataPacket[]>(
       `
-      SELECT DATE(data) as dia, SUM(valor) as total
+      SELECT DATE(data) as dia, SUM(valor_pago) as total
       FROM saida
       WHERE DATE(data) BETWEEN ? AND ?
       GROUP BY DATE(data)

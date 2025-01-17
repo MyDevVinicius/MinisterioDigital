@@ -205,16 +205,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   return (
     <ClickOutside onClick={() => setSidebarOpen(false)}>
       <aside
-        className={`fixed left-0 top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden rounded-r-lg bg-forte shadow-2xl duration-300 ease-linear dark:bg-boxdark lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-9999 flex h-screen w-full max-w-xs flex-col overflow-y-auto rounded-r-lg bg-forte shadow-2xl duration-300 ease-linear dark:bg-boxdark lg:w-72.5 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* <!-- SIDEBAR HEADER --> */}
-        <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
+        <div className="flex items-center justify-between gap-2 px-4 py-4 lg:px-6 lg:py-5.5">
           <Link href="/dashboard">
             <Image
-              width={300}
-              height={100}
+              width={200}
+              height={80}
               src={"/logosoft.png"}
               alt="Logo"
               priority
@@ -244,13 +244,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
         {/* <!-- SIDEBAR HEADER --> */}
 
-        <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
-          <DropdownUser />
+        <div className="no-scrollbar flex flex-col overflow-y-auto px-4 duration-300 ease-linear lg:px-6">
           {/* <!-- Sidebar Menu --> */}
-          <nav className="mt-5 px-4 py-4 lg:mt-9 lg:px-6">
+          <nav className="mt-5 px-2 py-4 lg:mt-9">
             {menuGroups.map((group, groupIndex) => (
               <div key={groupIndex}>
-                <h3 className="mb-4 ml-4 text-sm font-semibold text-bodydark2">
+                <h3 className="mb-4 text-sm font-semibold text-bodydark2">
                   {group.name}
                 </h3>
 
@@ -261,6 +260,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                       item={menuItem}
                       pageName={pageName}
                       setPageName={setPageName}
+                      className="text-sm lg:text-base"
                     />
                   ))}
                 </ul>
