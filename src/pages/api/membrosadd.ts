@@ -26,6 +26,8 @@ export default async function handler(
         .json({ message: "Erro ao processar o formulário", error: err });
     }
 
+    let connection;
+
     try {
       // Campos recebidos
       const nome = Array.isArray(fields.nome) ? fields.nome[0] : fields.nome;
@@ -78,7 +80,7 @@ export default async function handler(
       }
 
       // Conexão com o banco
-      const connection = await getClientConnection(nomeBanco);
+      connection = await getClientConnection(nomeBanco);
 
       const [result] = await connection.execute(
         "INSERT INTO membros (nome, data_nascimento, endereco, status, numero, email, cpf, rg, estado_civil) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -103,6 +105,14 @@ export default async function handler(
       return res
         .status(500)
         .json({ message: "Erro ao adicionar membro", error });
+    } finally {
+      if (connection) {
+        try {
+          await connection.end();
+        } catch (closeError) {
+          console.error("Erro ao fechar a conexão com o banco:", closeError);
+        }
+      }
     }
   });
 }
