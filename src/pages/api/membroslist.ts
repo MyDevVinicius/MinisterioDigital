@@ -50,7 +50,7 @@ export default async function handler(
 
     // Consultar membros
     const [rows] = await connection.execute<Membro[]>(`
-      SELECT id, nome, data_nascimento, endereco, status, numero, email 
+      SELECT id, nome, data_nascimento, endereco, status, numero, email, cpf, rg , estado_civil 
       FROM membros
     `);
 

@@ -16,6 +16,9 @@ interface Membro {
   numero?: string;
   email?: string;
   imagem?: string;
+  rg?: string;
+  cpf?: string;
+  estado_civil?: "solteiro" | "casado" | "divorciado" | "viuvo";
 }
 
 const MembrosList: React.FC = () => {
@@ -27,6 +30,11 @@ const MembrosList: React.FC = () => {
   const [status, setStatus] = useState<"ativo" | "inativo">("ativo");
   const [numero, setNumero] = useState("");
   const [email, setEmail] = useState("");
+  const [rg, setRg] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [estadoCivil, setEstadoCivil] = useState<
+    "solteiro" | "casado" | "divorciado" | "viuvo"
+  >("solteiro");
   const [image, setImage] = useState<File | null>(null);
   const [editingMembro, setEditingMembro] = useState<Membro | null>(null);
   const [carteiraMembro, setCarteiraMembro] = useState<Membro | null>(null);
@@ -66,6 +74,9 @@ const MembrosList: React.FC = () => {
     setStatus("ativo");
     setNumero("");
     setEmail("");
+    setRg("");
+    setCpf("");
+    setEstadoCivil("solteiro");
     setImage(null);
   };
 
@@ -88,6 +99,9 @@ const MembrosList: React.FC = () => {
       formData.append("status", status);
       formData.append("numero", numero);
       formData.append("email", email);
+      formData.append("rg", rg);
+      formData.append("cpf", cpf);
+      formData.append("estado_civil", estadoCivil);
 
       if (image) {
         formData.append("image", image);
@@ -124,24 +138,51 @@ const MembrosList: React.FC = () => {
       .toISOString()
       .split("T")[0];
 
+    // Remover a máscara do campo 'numero'
+    const numeroSemMascara = numero.replace(/\D/g, ""); // Remove tudo que não for número
+
     try {
-      const formData = new FormData();
-      formData.append("id", String(editingMembro?.id));
-      formData.append("nome", nome);
-      formData.append("data_nascimento", formattedDataNascimento);
-      formData.append("endereco", endereco);
-      formData.append("status", status);
-      formData.append("numero", numero);
-      formData.append("email", email);
+      const dataToSend = {
+        id: String(editingMembro?.id),
+        nome,
+        data_nascimento: formattedDataNascimento,
+        endereco,
+        status,
+        numero: numeroSemMascara, // Envia o número sem a máscara
+        email,
+        rg,
+        cpf,
+        estado_civil: estadoCivil,
+      };
 
+      let response;
       if (image) {
+        const formData = new FormData();
+        formData.append("id", String(editingMembro?.id));
+        formData.append("nome", nome);
+        formData.append("data_nascimento", formattedDataNascimento);
+        formData.append("endereco", endereco);
+        formData.append("status", status);
+        formData.append("numero", numeroSemMascara); // Número sem máscara
+        formData.append("email", email);
+        formData.append("rg", rg);
+        formData.append("cpf", cpf);
+        formData.append("estado_civil", estadoCivil);
         formData.append("image", image);
-      }
 
-      const response = await fetch(`/api/membrosedit?banco=${nomeBanco}`, {
-        method: "PUT",
-        body: formData,
-      });
+        response = await fetch(`/api/membrosedit?banco=${nomeBanco}`, {
+          method: "PUT",
+          body: formData,
+        });
+      } else {
+        response = await fetch(`/api/membrosedit?banco=${nomeBanco}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataToSend),
+        });
+      }
 
       const data = await response.json();
 
@@ -157,21 +198,6 @@ const MembrosList: React.FC = () => {
     }
   };
 
-  const handleOpenFormEdit = (membro: Membro) => {
-    setIsEditing(true);
-    setEditingMembro(membro);
-    setNome(membro.nome);
-
-    // Formatação da data de nascimento para o formato correto (yyyy-mm-dd)
-    const [dia, mes, ano] = membro.data_nascimento.split("/");
-    const dataFormatada = `${ano}-${mes}-${dia}`;
-    setDataNascimento(dataFormatada);
-    setEndereco(membro.endereco || "");
-    setStatus(membro.status);
-    setNumero(membro.numero || "");
-    setEmail(membro.email || "");
-  };
-
   const handleDeleteMembro = async (id: number) => {
     const nomeBanco = localStorage.getItem("nome_banco");
 
@@ -182,19 +208,16 @@ const MembrosList: React.FC = () => {
 
     try {
       const response = await fetch(
-        `/api/membrosdelete?id=${id}&banco=${nomeBanco}`,
+        `/api/membrosdelete?banco=${nomeBanco}&id=${id}`,
         {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
         },
       );
 
       const data = await response.json();
 
       if (response.ok) {
-        setMembros(membros.filter((membro) => membro.id !== id));
+        setMembros(data.membros);
         toast.success("Membro deletado com sucesso!");
       } else {
         toast.error(data.message || "Erro ao deletar membro.");
@@ -204,108 +227,123 @@ const MembrosList: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const validTypes = ["image/png", "image/jpeg"];
-      if (!validTypes.includes(file.type)) {
-        toast.error("Por favor, envie uma imagem PNG ou JPG.");
-        return;
-      }
-      setImage(file);
-    }
+  const handleOpenFormEdit = (membro: Membro) => {
+    setIsEditing(true);
+    setEditingMembro(membro);
+    setNome(membro.nome);
+
+    const [dia, mes, ano] = membro.data_nascimento.split("/");
+    const dataFormatada = `${ano}-${mes}-${dia}`;
+    setDataNascimento(dataFormatada);
+    setEndereco(membro.endereco || "");
+    setStatus(membro.status);
+    setNumero(membro.numero || "");
+    setEmail(membro.email || "");
+    setRg(membro.rg || "");
+    setCpf(membro.cpf || "");
+    setEstadoCivil(membro.estado_civil || "solteiro");
   };
 
   const handleOpenCarteirinha = (membro: Membro) => {
     setCarteiraMembro(membro);
+    generateCarteirinhaPDF(membro); // Adicionando a função para gerar o PDF
   };
 
-  const generateCarteirinhaPDF = (membro: Membro) => {
-    // Configuração do jsPDF com orientação e tamanho de uma carteirinha aberta
-    const doc = new jsPDF("landscape", "px", [2028, 637]); // Tamanho de uma carteirinha aberta (2028x637 px)
+  const convertToPx = (size: string) => {
+    // Converte rem para px assumindo 16px como base
+    if (size.endsWith("rem")) {
+      return parseFloat(size) * 26;
+    } else if (size.endsWith("px")) {
+      return parseFloat(size);
+    }
+    // Caso não seja nem rem nem px, retorna o valor como está (assumido em px)
+    return parseFloat(size);
+  };
 
-    // Adicionar o fundo da carteirinha
-    const modeloUrl = "/modelo-carteirinha.png"; // Caminho correto para a imagem no diretório public
-    doc.addImage(modeloUrl, "PNG", 0, 0, 2028, 637); // Fundo cobrindo toda a carteirinha aberta
+  const generateCarteirinhaPDF = (
+    membro: Membro,
+    fontSizes: {
+      nome: string;
+      estadoCivil: string;
+      data_nascimento: string;
+      status: string;
+      rg: string;
+      cpf: string;
+      igreja: string;
+      dataEmissao: string;
+      dataVencimento: string; // Tamanho da fonte para as datas
+    } = {
+      nome: "40px",
+      estadoCivil: "45px",
+      data_nascimento: "45px",
+      status: "40px",
+      rg: "40px",
+      cpf: "45px",
+      igreja: "45px",
+      dataEmissao: "30px", // Definindo o tamanho da fonte para a data de emissão
+      dataVencimento: "30px", // Definindo o tamanho da fonte para a data de vencimento
+    },
+  ) => {
+    const doc = new jsPDF("landscape", "px", [2028, 637]);
+    const modeloUrl = "/modelo-carteirinha.png";
+    doc.addImage(modeloUrl, "PNG", 0, 0, 2028, 637);
 
-    // Configuração de fonte
+    // Converter tamanhos das fontes
+    const nomeFontSize = convertToPx(fontSizes.nome);
+    const estadoCivilFontSize = convertToPx(fontSizes.estadoCivil);
+    const dataNascimentoFontSize = convertToPx(fontSizes.data_nascimento);
+    const statusFontSize = convertToPx(fontSizes.status);
+    const rgFontSize = convertToPx(fontSizes.rg);
+    const cpfFontSize = convertToPx(fontSizes.cpf);
+    const igrejaFontSize = convertToPx(fontSizes.igreja);
+    const dataEmissaoFontSize = convertToPx(fontSizes.dataEmissao);
+    const dataVencimentoFontSize = convertToPx(fontSizes.dataVencimento);
+
+    // Nome da igreja
+    const nomeIgreja =
+      localStorage.getItem("nome_igreja") || "Nome da Igreja Não Informado";
+    doc.setFontSize(igrejaFontSize);
+    doc.text(nomeIgreja, 680, 485); // Posição ajustada para o nome da igreja
+
+    // Nome do membro
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(12); // Ajuste no tamanho da fonte para melhorar a legibilidade
+    doc.setFontSize(nomeFontSize);
+    doc.text(`${membro.nome || "Não informado"}`, 390, 200);
 
-    // Adicionar informações do membro no layout
-    // Lado esquerdo (posição no layout)
-    doc.text(`Nome: ${membro.nome || "Não informado"}`, 40, 60); // Ajuste das posições
+    // Estado civil
+    doc.setFontSize(estadoCivilFontSize);
+    doc.text(`${membro.estado_civil || "Não informado"}`, 730, 395);
 
-    // Lado direito (posição no layout)
-    doc.text(`Pai: ${membro.pai || "Não informado"}`, 1000, 60); // Ajuste das posições
-    doc.text(`Mãe: ${membro.mae || "Não informado"}`, 1000, 80);
-    doc.text(
-      `Naturalidade: ${membro.naturalidade || "Não informado"}`,
-      1000,
-      100,
-    );
-    doc.text(`Sexo: ${membro.sexo || "Não informado"}`, 1000, 120);
-    doc.text(
-      `Nacionalidade: ${membro.nacionalidade || "Não informado"}`,
-      1000,
-      140,
-    );
-    doc.text(
-      `Estado Civil: ${membro.estadoCivil || "Não informado"}`,
-      1000,
-      160,
-    );
+    // Data de nascimento
+    doc.setFontSize(dataNascimentoFontSize);
+    doc.text(`${membro.data_nascimento || "Não informado"}`, 390, 400);
 
-    // RG e CPF
-    doc.text(`RG: ${membro.rg || "Não informado"}`, 40, 160);
-    doc.text(`CPF: ${membro.cpf || "Não informado"}`, 250, 160);
+    // Status
+    doc.setFontSize(statusFontSize);
+    doc.text(`${membro.status || "Não informado"}`, 390, 485);
 
-    // Assinatura do Pastor Presidente no rodapé
-    doc.setFontSize(10); // Ajuste do tamanho da fonte para o rodapé
-    doc.text("Nome do Pastor Presidente", 1000, 600); // Ajuste da posição para o rodapé
+    // RG
+    doc.setFontSize(rgFontSize);
+    doc.text(`${membro.rg || "Não informado"}`, 390, 300);
+
+    // CPF
+    doc.setFontSize(cpfFontSize);
+    doc.text(`${membro.cpf || "Não informado"}`, 700, 300);
+
+    // Adicionando as datas
+    const hoje = new Date();
+    const dataEmissao = hoje.toLocaleDateString("pt-BR"); // Formato dd/mm/yyyy
+    doc.setFontSize(dataEmissaoFontSize);
+    doc.text(`Data de Emissão: ${dataEmissao}`, 40, 539); // Ajustar a posição para a data de emissão
+
+    // Calcular a data de vencimento (um ano depois)
+    hoje.setFullYear(hoje.getFullYear() + 1);
+    const dataVencimento = hoje.toLocaleDateString("pt-BR");
+    doc.setFontSize(dataVencimentoFontSize);
+    doc.text(`Data de Vencimento: ${dataVencimento}`, 40, 580); // Ajustar a posição para a data de vencimento
 
     // Salvar o PDF
     doc.save(`${membro.nome}-carteirinha.pdf`);
-  };
-
-  const renderCarteirinha = (membro: Membro) => {
-    const imagemUrl = membro.imagem
-      ? `/api/serveImage?filename=${membro.imagem}`
-      : "/default-avatar.png";
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-50">
-        <div className="w-64 rounded-lg bg-white p-6 shadow-xl">
-          <div className="mb-4 flex justify-center">
-            <img
-              src={imagemUrl}
-              alt="Imagem do Membro"
-              className="h-24 w-24 rounded-full border-4 border-media"
-            />
-          </div>
-          <h3 className="text-center text-lg font-bold">{membro.nome}</h3>
-          <p className="text-center text-sm text-gray-600">{membro.status}</p>
-          <p className="mt-2 text-center text-sm">
-            Data Nascimento:{" "}
-            {new Date(membro.data_nascimento).toLocaleDateString()}
-          </p>
-          <p className="text-center text-sm">Telefone: {membro.numero}</p>
-          <p className="text-center text-sm">Email: {membro.email}</p>
-          <button
-            onClick={() => setCarteiraMembro(null)}
-            className="mt-4 w-full rounded bg-red-500 p-2 text-white"
-          >
-            Fechar
-          </button>
-          <button
-            onClick={() => generateCarteirinhaPDF(membro)}
-            className="mt-4 w-full rounded bg-green-500 p-2 text-white"
-          >
-            Baixar PDF
-          </button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -324,10 +362,14 @@ const MembrosList: React.FC = () => {
               <h2 className="text-center text-lg font-bold sm:text-xl">
                 {editingMembro ? "Editar Membro" : "Adicionar Membro"}
               </h2>
-              <form onSubmit={(e) => e.preventDefault()}>
+
+              <form
+                onSubmit={(e) => e.preventDefault()}
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
+              >
                 <input
                   type="text"
-                  value={nome || ""}
+                  value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   placeholder="Nome"
                   required
@@ -335,7 +377,7 @@ const MembrosList: React.FC = () => {
                 />
                 <input
                   type="date"
-                  value={dataNascimento || ""}
+                  value={dataNascimento}
                   onChange={(e) => setDataNascimento(e.target.value)}
                   placeholder="Data de Nascimento"
                   required
@@ -343,25 +385,57 @@ const MembrosList: React.FC = () => {
                 />
                 <input
                   type="text"
-                  value={endereco || ""}
+                  value={endereco}
                   onChange={(e) => setEndereco(e.target.value)}
                   placeholder="Endereço"
                   className="my-2 w-full border border-media p-2 text-sm font-bold text-black lg:text-base"
                 />
                 <input
                   type="text"
-                  value={numero || ""}
+                  value={numero}
                   onChange={(e) => setNumero(e.target.value)}
                   placeholder="WhatsApp"
                   className="my-2 w-full border border-media p-2 text-sm font-bold text-black lg:text-base"
                 />
                 <input
                   type="email"
-                  value={email || ""}
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
                   className="my-2 w-full border border-media p-2 text-sm font-bold text-black lg:text-base"
                 />
+                <input
+                  type="text"
+                  value={rg}
+                  onChange={(e) => setRg(e.target.value)}
+                  placeholder="RG"
+                  className="my-2 w-full border border-media p-2 text-sm font-bold text-black lg:text-base"
+                />
+                <input
+                  type="text"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  placeholder="CPF"
+                  className="my-2 w-full border border-media p-2 text-sm font-bold text-black lg:text-base"
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(
+                      /^(\d{3})(\d{3})(\d{3})(\d{2}).*/,
+                      "$1.$2.$3-$4",
+                    );
+                  }}
+                />
+                <select
+                  value={estadoCivil}
+                  onChange={(e) =>
+                    setEstadoCivil(e.target.value as typeof estadoCivil)
+                  }
+                  className="my-2 w-full border border-media p-2 text-sm font-bold text-black lg:text-base"
+                >
+                  <option value="solteiro">Solteiro</option>
+                  <option value="casado">Casado</option>
+                  <option value="divorciado">Divorciado</option>
+                  <option value="viuvo">Viúvo</option>
+                </select>
                 <select
                   value={status}
                   onChange={(e) =>
@@ -374,14 +448,7 @@ const MembrosList: React.FC = () => {
                   <option value="inativo">Inativo</option>
                 </select>
 
-                <input
-                  type="file"
-                  accept="image/png, image/jpeg"
-                  onChange={handleImageUpload}
-                  className="my-2 w-full border border-media p-2 text-sm font-bold text-black lg:text-base"
-                />
-
-                <div className="mt-4 flex justify-between">
+                <div className="col-span-full mt-4 flex justify-between">
                   <button
                     type="button"
                     onClick={handleCloseForm}
@@ -410,6 +477,10 @@ const MembrosList: React.FC = () => {
                 <th className="px-4 py-2 text-left">Endereço</th>
                 <th className="px-4 py-2 text-left">WhatsApp</th>
                 <th className="px-4 py-2 text-left">Email</th>
+                <th className="px-4 py-2 text-left">RG</th> {/* Novo campo */}
+                <th className="px-4 py-2 text-left">CPF</th> {/* Novo campo */}
+                <th className="px-4 py-2 text-left">Estado Civil</th>{" "}
+                {/* Novo campo */}
                 <th className="px-4 py-2 text-left">Ações</th>
               </tr>
             </thead>
@@ -421,10 +492,15 @@ const MembrosList: React.FC = () => {
                     <td className="px-4 py-2">
                       {membro.data_nascimento || "Data inválida"}
                     </td>
-
                     <td className="px-4 py-2">{membro.endereco}</td>
                     <td className="px-4 py-2">{membro.numero}</td>
                     <td className="px-4 py-2">{membro.email}</td>
+                    <td className="px-4 py-2">{membro.rg}</td>{" "}
+                    {/* Novo campo */}
+                    <td className="px-4 py-2">{membro.cpf}</td>{" "}
+                    {/* Novo campo */}
+                    <td className="px-4 py-2">{membro.estado_civil}</td>{" "}
+                    {/* Novo campo */}
                     <td className="px-4 py-2">
                       <button
                         onClick={() => handleOpenCarteirinha(membro)}
@@ -449,7 +525,7 @@ const MembrosList: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-4 text-center text-gray-600">
+                  <td colSpan={9} className="py-4 text-center text-gray-600">
                     Não há membros cadastrados.
                   </td>
                 </tr>
@@ -458,7 +534,6 @@ const MembrosList: React.FC = () => {
           </table>
         </div>
       </div>
-      {carteiraMembro && renderCarteirinha(carteiraMembro)}
     </div>
   );
 };
