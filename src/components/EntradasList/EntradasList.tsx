@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import { toast } from "react-toastify"; // Importa a função toast para mostrar mensagens
+import { toast } from "react-toastify";
 
 interface Entrada {
   id: number;
@@ -10,6 +10,7 @@ interface Entrada {
   valor: string;
   data_Lancamento: string;
   membro_id: number;
+  visibilidade: number;
 }
 
 const EntradasList: React.FC = () => {
@@ -24,6 +25,7 @@ const EntradasList: React.FC = () => {
   const [valor, setValor] = useState<string>("");
   const [dataLancamento, setDataLancamento] = useState<string>("");
   const [notificationShown, setNotificationShown] = useState<boolean>(false);
+  const [hasPermissions, setHasPermissions] = useState<boolean>(false); // Estado para controlar permissões
 
   const fetchEntradas = async () => {
     try {
@@ -31,20 +33,46 @@ const EntradasList: React.FC = () => {
       const nomeBanco = localStorage.getItem("nome_banco");
 
       if (!chave || !nomeBanco) {
-        toast.error("Chave de verificação ou nome do banco não encontrados.");
-        return;
+        return; // Não precisa dar erro aqui, apenas retorna
       }
 
-      const response = await fetch("/api/entradaslist", {
+      // Verificando permissões antes de carregar entradas
+      const email = localStorage.getItem("email");
+      if (!email) {
+        return; // Não precisa dar erro aqui, apenas retorna
+      }
+
+      const response = await fetch(
+        `/api/checkPermissions?email=${email}&nomeBanco=${nomeBanco}`,
+      );
+      const permissionData = await response.json();
+
+      if (
+        response.ok &&
+        permissionData.permissoes.some(
+          (perm: any) =>
+            perm.nome_pagina === "Financeiro" &&
+            perm.nome_funcao === "Entradas" &&
+            perm.ativado === 1,
+        )
+      ) {
+        setHasPermissions(true);
+      } else {
+        setHasPermissions(false); // Definindo para false, ocultando o componente
+        return; // Se não tiver permissão, retorna sem carregar as entradas
+      }
+
+      // Agora que o usuário tem permissão, buscamos as entradas
+      const responseEntradas = await fetch("/api/entradaslist", {
         method: "GET",
         headers: {
           "x-verificacao-chave": chave,
           "x-nome-banco": nomeBanco,
         },
       });
-      const data = await response.json();
+      const data = await responseEntradas.json();
 
-      if (response.ok) {
+      if (responseEntradas.ok) {
         setEntradas(data.data);
         if (!notificationShown) {
           setNotificationShown(true);
@@ -54,9 +82,17 @@ const EntradasList: React.FC = () => {
       }
     } catch (error) {
       console.error("Erro ao buscar entradas:", error);
-      toast.error("Erro ao buscar entradas");
     }
   };
+
+  useEffect(() => {
+    fetchEntradas();
+  }, []);
+
+  // Se o usuário não tem permissão, o componente não renderiza nada
+  if (!hasPermissions) {
+    return null;
+  }
 
   const deleteEntrada = async (id: number) => {
     try {
@@ -64,126 +100,29 @@ const EntradasList: React.FC = () => {
       const nomeBanco = localStorage.getItem("nome_banco");
 
       if (!chave || !nomeBanco) {
-        toast.error("Chave de verificação ou nome do banco não encontrados.");
-        return;
+        return; // Não precisa dar erro aqui, apenas retorna
       }
 
-      const response = await fetch(`/api/entradasdelete/${id}`, {
+      const response = await fetch(`/api/entradas/${id}`, {
         method: "DELETE",
         headers: {
-          "x-nome-banco": nomeBanco,
           "x-verificacao-chave": chave,
+          "x-nome-banco": nomeBanco,
         },
       });
-
       const data = await response.json();
 
       if (response.ok) {
-        setEntradas((prev) => prev.filter((entrada) => entrada.id !== id));
-        toast.success("Entrada excluída com sucesso!");
+        setEntradas(entradas.filter((entrada) => entrada.id !== id));
+        toast.success("Entrada excluída com sucesso.");
       } else {
         toast.error(data.message || "Erro ao excluir entrada.");
       }
     } catch (error) {
       console.error("Erro ao excluir entrada:", error);
-      toast.error("Erro ao excluir entrada");
+      toast.error("Erro ao excluir entrada.");
     }
   };
-
-  const editEntrada = async () => {
-    if (!observacao || !tipo || !valor || !dataLancamento) {
-      toast.error("Preencha todos os campos.");
-      return;
-    }
-
-    if (!editingEntrada) {
-      toast.error("Entrada não encontrada para editar.");
-      return;
-    }
-
-    const chave = localStorage.getItem("codigo_verificacao");
-    const nomeBanco = localStorage.getItem("nome_banco");
-
-    if (!chave || !nomeBanco) {
-      toast.error("Chave de verificação ou nome do banco não encontrados.");
-      return;
-    }
-
-    const updatedEntrada = {
-      id: editingEntrada.id,
-      observacao,
-      tipo,
-      forma_pagamento: formaPagamento,
-      valor,
-      data_Lancamento: dataLancamento,
-      membro_id: editingEntrada.membro_id,
-    };
-
-    try {
-      const response = await fetch(`/api/entradasedit/${updatedEntrada.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-verificacao-chave": chave, // Envia a chave de verificação no header
-          "x-nome-banco": nomeBanco, // Envia o nome do banco no header
-        },
-        body: JSON.stringify(updatedEntrada),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        setEntradas((prev) =>
-          prev.map((entrada) =>
-            entrada.id === updatedEntrada.id ? updatedEntrada : entrada,
-          ),
-        );
-        toast.success("Entrada atualizada com sucesso!");
-        setIsEditing(false);
-        setEditingEntrada(null);
-        clearForm();
-      } else {
-        toast.error(data.message || "Erro ao atualizar entrada.");
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar entrada:", error);
-      toast.error("Erro ao atualizar entrada");
-    }
-  };
-
-  const clearForm = () => {
-    setObservacao("");
-    setTipo("");
-    setFormaPagamento("");
-    setValor("");
-    setDataLancamento("");
-  };
-
-  const formatarValor = (valor: string) =>
-    `R$ ${parseFloat(valor).toFixed(2).replace(".", ",")}`;
-
-  const formatarData = (data: string | null) => {
-    if (!data || data === "null") return "-"; // Exibe "-" se a data for null
-    const date = new Date(data);
-    if (isNaN(date.getTime())) {
-      return "-"; // Se a data for inválida, exibe "-"
-    }
-    return date.toLocaleDateString("pt-BR"); // Formato brasileiro
-  };
-
-  const entradasFiltradas = entradas.filter((entrada) => {
-    const dataVencimento = new Date(entrada.data_Lancamento);
-    const startDate = startDateFilter ? new Date(startDateFilter) : null;
-    const endDate = endDateFilter ? new Date(endDateFilter) : null;
-
-    const matchesStartDate = !startDate || dataVencimento >= startDate;
-    const matchesEndDate = !endDate || dataVencimento <= endDate;
-
-    return matchesStartDate && matchesEndDate;
-  });
-
-  useEffect(() => {
-    fetchEntradas();
-  }, []);
 
   return (
     <div className="mx-auto mt-4 w-full max-w-full space-y-4 rounded-lg p-4 shadow-[0px_4px_6px_rgba(0,0,0,0.1),0px_-4px_6px_rgba(0,0,0,0.1)]">
@@ -220,16 +159,13 @@ const EntradasList: React.FC = () => {
           </tr>
         </thead>
         <tbody className="bg-gray-50 font-bold text-black shadow-[0px_4px_6px_rgba(0,0,0,0.1),0px_-4px_6px_rgba(0,0,0,0.1)]">
-          {entradasFiltradas.map((entrada) => (
+          {entradas.map((entrada) => (
             <tr key={entrada.id}>
               <td className="px-4 py-2">{entrada.observacao}</td>
               <td className="px-4 py-2">{entrada.tipo}</td>
               <td className="px-4 py-2">{entrada.forma_pagamento}</td>
-              <td className="px-4 py-2">{formatarValor(entrada.valor)}</td>
-              <td className="px-4 py-2">
-                {formatarData(entrada.data_Lancamento)}{" "}
-                {/* Alterado para data_Lancamento */}
-              </td>
+              <td className="px-4 py-2">{entrada.valor}</td>
+              <td className="px-4 py-2">{entrada.data_Lancamento}</td>
 
               <td className="px-4 py-2">
                 <button
@@ -241,9 +177,6 @@ const EntradasList: React.FC = () => {
                     setFormaPagamento(entrada.forma_pagamento);
                     setValor(entrada.valor);
                     setDataLancamento(entrada.data_Lancamento);
-                    {
-                      /* Alterado para data_Lancamento */
-                    }
                   }}
                   className="mr-[1rem] text-2xl text-media"
                 >
@@ -260,96 +193,6 @@ const EntradasList: React.FC = () => {
           ))}
         </tbody>
       </table>
-
-      {isEditing && editingEntrada && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-[40rem] rounded-md bg-white p-6 shadow-md">
-            <h2 className="text-lg font-bold">Editar Entrada</h2>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                editEntrada();
-              }}
-            >
-              <div className="mb-4">
-                <label className="block text-gray-700">Observação</label>
-                <input
-                  type="text"
-                  value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
-                  className="w-full rounded-md border p-2 text-black"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700">Tipo</label>
-                <select
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value)}
-                  className="w-full rounded-md border p-2 text-black"
-                >
-                  <option value="Dizimo">Dízimo</option>
-                  <option value="Oferta">Oferta</option>
-                  <option value="Doacao">Doação</option>
-                  <option value="Campanha">Campanha</option>
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700">
-                  Forma de Pagamento
-                </label>
-                <select
-                  value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value)}
-                  className="w-full rounded-md border p-2 text-black"
-                >
-                  <option value="Dinheiro">Dinheiro</option>
-                  <option value="PIX">PIX</option>
-                  <option value="Debito">Débito</option>
-                  <option value="Credito">Crédito</option>
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700">Valor</label>
-                <input
-                  type="text"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  className="w-full rounded-md border p-2 text-black"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700">
-                  Data de Lançamento
-                </label>
-                <input
-                  type="date"
-                  value={new Date(dataLancamento).toISOString().split("T")[0]} // Formato YYYY-MM-DD
-                  onChange={(e) => setDataLancamento(e.target.value)}
-                  className="w-full rounded-md border p-2 text-black"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="mt-4 rounded-md bg-media px-4 py-2 text-white"
-              >
-                Atualizar
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="ml-2 mt-4 rounded-md bg-red-500 px-4 py-2 text-white"
-              >
-                Fechar
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

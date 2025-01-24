@@ -27,7 +27,6 @@ const PermissionManager: React.FC = () => {
   const [permissions, setPermissions] = useState<Permissions>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  // Permissões disponíveis para todos os usuários
   const allAvailablePermissions: Permissions = {
     Relatórios: {
       name: "Relatórios",
@@ -117,7 +116,6 @@ const PermissionManager: React.FC = () => {
           ? selectedUser.permissions
           : allAvailablePermissions;
 
-      // Combine default permissions with user's permissions, disabling those not present for the user
       const combinedPermissions = Object.keys(allAvailablePermissions).reduce(
         (acc, pageKey) => {
           const defaultPage = allAvailablePermissions[pageKey];
@@ -209,7 +207,6 @@ const PermissionManager: React.FC = () => {
           Gerenciador de Permissões
         </h1>
 
-        {/* Seleção de Usuário */}
         <div className="mb-6">
           <label
             htmlFor="userSelect"
@@ -234,7 +231,6 @@ const PermissionManager: React.FC = () => {
           </select>
         </div>
 
-        {/* Permissões */}
         <div>
           {Object.entries(permissions).length > 0 ? (
             Object.entries(permissions).map(([pageKey, pageData]) => (
@@ -250,17 +246,12 @@ const PermissionManager: React.FC = () => {
                         <span className="w-fit font-medium text-gray-800">
                           {func.name}
                         </span>
-                        <label className="relative inline-flex cursor-pointer items-center">
-                          <input
-                            type="checkbox"
-                            className="peer sr-only"
-                            checked={func.enabled}
-                            onChange={() => togglePermission(pageKey, index)}
-                          />
-                          <div className="h-5 w-8 rounded-full bg-gray-200 transition-all peer-checked:bg-green-500 peer-checked:after:translate-x-3"></div>
-                          <div className="h-4 w-4 rounded-full bg-white shadow-md transition-all peer-checked:translate-x-3"></div>
-                        </label>
-                        {/* Texto que indica se a permissão está ativada ou desativada */}
+                        <input
+                          type="checkbox"
+                          checked={func.enabled}
+                          onChange={() => togglePermission(pageKey, index)}
+                          className="form-checkbox h-5 w-5 text-indigo-600"
+                        />
                         <span className="ml-4 text-sm font-medium text-gray-600">
                           {func.enabled ? "Ativado" : "Desativado"}
                         </span>
@@ -281,8 +272,6 @@ const PermissionManager: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Botão Salvar Alterações */}
 
       <div className="mt-8 text-center">
         <button
