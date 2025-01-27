@@ -41,6 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let clientConnection;
 
     try {
+      // Obter a conexão do cliente usando um pool de conexões
       clientConnection = await getClientConnection(nomeBanco);
 
       const { startDate, endDate } = req.query;
@@ -67,30 +68,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         queryParams.push(validatedEndDate);
       }
 
-      // Executa a consulta
+      // Executa a consulta no banco de dados
       const [rows] = await clientConnection.query<RowDataPacket[]>(query, queryParams);
 
+      // Verifica se a consulta retornou resultados
       if (rows.length === 0) {
         return res.status(404).json({ message: "Nenhuma entrada encontrada para os parâmetros fornecidos." });
       }
 
+      // Formatar os dados para um formato mais legível
       const formattedRows = formatEntries(rows);
 
-      console.log(formattedRows); // Para verificação no console
-
+      // Retorna a resposta formatada
       return res.status(200).json({ data: formattedRows });
     } catch (error) {
+      // Tratamento de erro
       console.error("Erro ao buscar entradas:", error);
       return res.status(500).json({
         message: "Erro interno no servidor. Tente novamente mais tarde.",
         error: error.message || "Erro desconhecido",
       });
     } finally {
+      // Liberar a conexão no pool de conexões
       if (clientConnection) {
         clientConnection.release();
       }
     }
   } else {
+    // Método não permitido
     return res.status(405).json({ message: `Método ${req.method} não permitido.` });
   }
 }
