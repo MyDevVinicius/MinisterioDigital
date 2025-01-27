@@ -8,20 +8,19 @@ interface Usuario extends RowDataPacket {
   id: number;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Verificar se o método é POST
   if (req.method !== "POST") {
-    return res
-      .status(405)
-      .json({ error: `Método ${req.method} não permitido` });
+    return res.status(405).json({ error: `Método ${req.method} não permitido` });
   }
 
   // Obter e-mail e nome do banco do cabeçalho
-  const email = req.headers["x-usuario-email"] as string;
-  const nome_banco = req.headers["x-nome-banco"] as string;
+  const email = Array.isArray(req.headers["x-usuario-email"])
+    ? req.headers["x-usuario-email"][0]
+    : req.headers["x-usuario-email"];
+  const nome_banco = Array.isArray(req.headers["x-nome-banco"])
+    ? req.headers["x-nome-banco"][0]
+    : req.headers["x-nome-banco"];
 
   if (!email) {
     return res.status(400).json({ error: "E-mail não fornecido no cabeçalho" });
@@ -51,14 +50,12 @@ export default async function handler(
   let usuarioId;
 
   try {
-    // Criar a conexão com o banco do cliente
+    // Criar a conexão com o banco do cliente utilizando pool
     clientConnection = await getClientConnection(nome_banco);
 
     // Buscar o ID do usuário com o e-mail fornecido
     const userSql = "SELECT id FROM usuarios WHERE email = ?";
-    const [userRows] = await clientConnection.execute<Usuario[]>(userSql, [
-      email,
-    ]);
+    const [userRows] = await clientConnection.execute<Usuario[]>(userSql, [email]);
 
     if (userRows.length === 0) {
       return res.status(404).json({ error: "Usuário não encontrado" });
@@ -72,15 +69,21 @@ export default async function handler(
     // Lógica para determinar o status com base em valorPago e dataVencimento
     let status = "Pendente"; // Default status
 
-    if (valorPago === valor) {
+    // Verifica se valorPago é um número válido
+    const parsedValorPago = parseFloat(valorPago as string);
+    if (isNaN(parsedValorPago)) {
+      return res.status(400).json({ error: "Valor pago inválido." });
+    }
+
+    if (parsedValorPago === valor) {
       status = "Pago"; // Se o valor pago for igual ao valor total, o status é 'Pago'
     } else if (
-      valorPago > 0 &&
-      valorPago < valor &&
+      parsedValorPago > 0 &&
+      parsedValorPago < valor &&
       new Date(dataVencimento) >= today
     ) {
       status = "Pago Parcial"; // Valor pago parcial e dentro do prazo
-    } else if (valorPago === 0 && new Date(dataVencimento) >= today) {
+    } else if (parsedValorPago === 0 && new Date(dataVencimento) >= today) {
       status = "Pendente"; // Não pago e dentro do prazo
     } else if (new Date(dataVencimento) < today) {
       status = "Vencida"; // Fora do prazo
@@ -97,7 +100,7 @@ export default async function handler(
       tipo,
       observacao,
       valor,
-      valorPago || 0, // Valor pago opcional, padrão 0
+      parsedValorPago || 0, // Valor pago opcional, padrão 0
       status, // Status determinado pela lógica
       formaPagamento,
       dataVencimento,
@@ -127,9 +130,14 @@ export default async function handler(
     return res.status(201).json({ message: "Saída registrada com sucesso." });
   } catch (error) {
     console.error("Erro ao registrar saída:", error);
-    return res.status(500).json({ error: "Erro interno do servidor." });
+    return res.status(500).json({
+      error: "Erro interno do servidor.",
+      details: error.message || "Erro desconhecido",
+    });
   } finally {
-    // Fechar a conexão com o banco de dados
-    if (clientConnection) clientConnection.end();
+    // Garantir que a conexão seja liberada corretamente
+    if (clientConnection) {
+      clientConnection.release(); // Usa o pool de conexões corretamente
+    }
   }
 }
