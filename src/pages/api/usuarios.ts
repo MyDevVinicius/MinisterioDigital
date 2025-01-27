@@ -25,23 +25,21 @@ export default async function handler(
   const nome_banco = req.headers["nome-banco"] || req.query["nome_banco"];
 
   // Verifica se todos os campos obrigatórios estão presentes
-  if (!email || !nome_banco) {
+  if (!email || typeof email !== "string" || !nome_banco || typeof nome_banco !== "string") {
     return res
       .status(400)
-      .json({ error: "Email e nome_banco são obrigatórios." });
+      .json({ error: "Email e nome_banco são obrigatórios e devem ser strings válidas." });
   }
 
   let clientConnection;
 
   try {
     // Conectar ao banco de dados do cliente usando o nome_banco
-    clientConnection = await getClientConnection(nome_banco as string);
+    clientConnection = await getClientConnection(nome_banco);
 
     // Consulta SQL para buscar os dados do usuário
     const userSql = "SELECT email, nome, cargo FROM usuarios WHERE email = ?";
-    const [userRows] = await clientConnection.execute<Usuario[]>(userSql, [
-      email,
-    ]);
+    const [userRows] = await clientConnection.execute<Usuario[]>(userSql, [email]);
 
     // Verifica se o usuário foi encontrado
     if (userRows.length === 0) {
@@ -57,6 +55,13 @@ export default async function handler(
     });
   } catch (error) {
     console.error("Erro ao buscar dados do usuário:", error);
+
+    // Verifica se o erro é de conexão ou relacionado ao banco
+    if (error.code === "ECONNREFUSED") {
+      return res.status(500).json({ error: "Falha na conexão com o banco de dados" });
+    }
+
+    // Caso o erro não seja específico, trata como erro interno do servidor
     return res.status(500).json({ error: "Erro interno do servidor" });
   } finally {
     // Fecha a conexão com o banco, se aberta
@@ -65,6 +70,7 @@ export default async function handler(
         await clientConnection.release();
       } catch (releaseError) {
         console.error("Erro ao liberar a conexão:", releaseError);
+        // É importante registrar o erro de liberação da conexão, mas não interromper o fluxo
       }
     }
   }
