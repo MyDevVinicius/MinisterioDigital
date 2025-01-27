@@ -1,81 +1,96 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getClientConnection } from "../../../lib/db"; // Função para conectar ao banco de dados do cliente
+import { getClientConnection } from "../../../lib/db"; // Ajuste o caminho conforme necessário
 import { RowDataPacket } from "mysql2";
 
-interface Usuario extends RowDataPacket {
-  email: string;
-  nome: string;
-  cargo: string;
-  id: number;
-}
+// Função para validar parâmetros de data
+const validateDate = (date: string | undefined): Date | null => {
+  if (!date) return null;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  if (req.method !== "POST") {
-    return res
-      .status(405)
-      .json({ error: `Método ${req.method} não permitido` });
-  }
+  const parsedDate = new Date(date);
+  return isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
 
-  const email = req.headers["x-usuario-email"] as string;
+// Função para formatar as entradas
+const formatEntries = (rows: RowDataPacket[]): any[] => {
+  return rows.map((row) => ({
+    ...row,
+    data_Lancamento: row.data_vencimento
+      ? new Date(row.data_vencimento).toISOString()
+      : null,
+  }));
+};
 
-  if (!email) {
-    return res.status(400).json({ error: "E-mail não fornecido no cabeçalho" });
-  }
+// Função principal para lidar com a requisição
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "GET") {
+    const chave = Array.isArray(req.headers["x-verificacao-chave"])
+      ? req.headers["x-verificacao-chave"][0]
+      : req.headers["x-verificacao-chave"];
 
-  const { observacao, tipo, formaPagamento, valor, dataTransacao, membroId } =
-    req.body;
-  const nome_banco = req.headers["x-nome-banco"] as string;
+    const nomeBanco = Array.isArray(req.headers["x-nome-banco"])
+      ? req.headers["x-nome-banco"][0]
+      : req.headers["x-nome-banco"];
 
-  if (
-    !nome_banco ||
-    !observacao ||
-    !tipo ||
-    !formaPagamento ||
-    !valor ||
-    !dataTransacao
-  ) {
-    return res.status(400).json({ error: "Campos obrigatórios ausentes." });
-  }
-
-  let clientConnection;
-  let usuarioId;
-
-  try {
-    clientConnection = await getClientConnection(nome_banco);
-    const userSql = "SELECT id FROM usuarios WHERE email = ?";
-    const [userRows] = await clientConnection.execute<Usuario[]>(userSql, [
-      email,
-    ]);
-
-    if (userRows.length === 0) {
-      return res.status(404).json({ error: "Usuário não encontrado" });
+    // Validação de cabeçalhos
+    if (!chave || !nomeBanco) {
+      return res.status(400).json({
+        message: "Chave de verificação ou nome do banco não fornecidos.",
+      });
     }
 
-    usuarioId = userRows[0].id;
+    let clientConnection;
 
-    const queryParams = [
-      observacao,
-      tipo,
-      formaPagamento,
-      valor,
-      dataTransacao,
-      usuarioId,
-      tipo === "Dizimo" || tipo === "Campanha" ? membroId || null : null,
-    ];
+    try {
+      clientConnection = await getClientConnection(nomeBanco);
 
-    const query =
-      "INSERT INTO entrada (observacao, tipo, forma_pagamento, valor, data, usuario_id, membro_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+      const { startDate, endDate } = req.query;
 
-    await clientConnection.query(query, queryParams);
+      let query = `
+        SELECT id, observacao, tipo, forma_pagamento, valor, data AS data_vencimento, membro_id
+        FROM entrada
+        WHERE 1=1
+      `;
 
-    return res.status(201).json({ message: "Entrada registrada com sucesso." });
-  } catch (error) {
-    console.error("Erro ao registrar entrada:", error);
-    return res.status(500).json({ error: "Erro interno do servidor." });
-  } finally {
-    if (clientConnection) clientConnection.end();
+      const queryParams: any[] = [];
+
+      // Validando as datas de filtro
+      const validatedStartDate = validateDate(startDate as string);
+      const validatedEndDate = validateDate(endDate as string);
+
+      if (validatedStartDate) {
+        query += ` AND data >= ?`;
+        queryParams.push(validatedStartDate);
+      }
+
+      if (validatedEndDate) {
+        query += ` AND data <= ?`;
+        queryParams.push(validatedEndDate);
+      }
+
+      // Executa a consulta
+      const [rows] = await clientConnection.query<RowDataPacket[]>(query, queryParams);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "Nenhuma entrada encontrada para os parâmetros fornecidos." });
+      }
+
+      const formattedRows = formatEntries(rows);
+
+      console.log(formattedRows); // Para verificação no console
+
+      return res.status(200).json({ data: formattedRows });
+    } catch (error) {
+      console.error("Erro ao buscar entradas:", error);
+      return res.status(500).json({
+        message: "Erro interno no servidor. Tente novamente mais tarde.",
+        error: error.message || "Erro desconhecido",
+      });
+    } finally {
+      if (clientConnection) {
+        clientConnection.release();
+      }
+    }
+  } else {
+    return res.status(405).json({ message: `Método ${req.method} não permitido.` });
   }
 }
